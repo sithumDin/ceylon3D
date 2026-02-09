@@ -1,0 +1,13 @@
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Maven/Java
+itp-ecommerce/target/
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

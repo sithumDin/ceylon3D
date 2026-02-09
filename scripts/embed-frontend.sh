@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FRONT_DIR="$ROOT_DIR/3D Printing Service Homepage (1)"
+FRONT_DIR="$ROOT_DIR/frontend"
 TARGET_DIR="$ROOT_DIR/itp-ecommerce/src/main/resources/static"
 
 if [ ! -d "$FRONT_DIR" ]; then
@@ -15,8 +15,15 @@ fi
 echo "Installing frontend dependencies (if needed)..."
 npm --prefix "$FRONT_DIR" install --no-audit --no-fund
 
-echo "Building frontend (npm run build)..."
-npm --prefix "$FRONT_DIR" run build
+# Use environment variable if present to control build mode
+BUILD_CMD="npm --prefix \"$FRONT_DIR\" run build"
+if [ "${CI:-}" = "true" ]; then
+  echo "CI mode: running build with --silent"
+  $BUILD_CMD --silent
+else
+  echo "Building frontend (npm run build)..."
+  $BUILD_CMD
+fi
 
 BUILD_DIR="$FRONT_DIR/dist"
 if [ ! -d "$BUILD_DIR" ]; then
