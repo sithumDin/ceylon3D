@@ -29,11 +29,11 @@ const services = [
 
 export function Services() {
   return (
-    <section id="services" className="py-20 bg-[#2d2d44]">
+    <section id="services" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl mb-4 text-white">Our Services</h2>
-          <p className="text-xl text-white/60 max-w-2xl mx-auto">
+          <h2 className="text-4xl sm:text-5xl mb-4 text-gray-900">Our Services</h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Comprehensive 3D printing solutions tailored to your needs
           </p>
         </div>
@@ -44,16 +44,16 @@ export function Services() {
             return (
               <div
                 key={index}
-                className="bg-[#1a1a2e] rounded-2xl p-8 hover:bg-[#23233d] hover:scale-105 transition-all duration-300 border-2 border-transparent hover:border-purple-500/30 shadow-lg hover:shadow-2xl hover:shadow-purple-500/20 cursor-pointer"
+                className="bg-white rounded-2xl p-8 hover:bg-gray-50 hover:scale-105 transition-all duration-300 border border-gray-100 shadow-sm hover:shadow-md cursor-pointer"
               >
                 <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-6 shadow-lg">
                   <Icon className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-2xl mb-3 text-white">{service.title}</h3>
-                <p className="text-white/60 mb-4">{service.description}</p>
+                <h3 className="text-2xl mb-3 text-gray-900">{service.title}</h3>
+                <p className="text-gray-600 mb-4">{service.description}</p>
                 <ul className="space-y-2">
                   {service.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-white/70">
+                    <li key={idx} className="flex items-center gap-2 text-gray-700">
                       <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
                       {feature}
                     </li>

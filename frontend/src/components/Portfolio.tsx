@@ -47,11 +47,11 @@ const portfolioItems = [
 
 export function Portfolio() {
   return (
-    <section id="portfolio" className="py-20 bg-[#1a1a2e]">
+    <section id="portfolio" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl mb-4 text-white">Our Portfolio</h2>
-          <p className="text-xl text-white/60 max-w-2xl mx-auto">
+          <h2 className="text-4xl sm:text-5xl mb-4 text-gray-900">Our Portfolio</h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Explore our collection of successful 3D printing projects across various industries
           </p>
         </div>
@@ -60,7 +60,7 @@ export function Portfolio() {
           {portfolioItems.map((item) => (
             <div
               key={item.id}
-              className="group bg-[#2d2d44] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 transform hover:-translate-y-2 cursor-pointer"
+              className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-2 cursor-pointer border border-gray-100"
             >
               <div className="relative h-64 overflow-hidden">
                 <ImageWithFallback
@@ -73,8 +73,8 @@ export function Portfolio() {
                 </div>
               </div>
               <div className="p-6">
-                <h3 className="text-xl mb-2 text-white">{item.title}</h3>
-                <p className="text-white/60">{item.description}</p>
+                <h3 className="text-xl mb-2 text-gray-900">{item.title}</h3>
+                <p className="text-gray-600">{item.description}</p>
               </div>
             </div>
           ))}

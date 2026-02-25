@@ -23,11 +23,11 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" className="py-20 bg-[#2d2d44]">
+    <section id="contact" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl mb-4 text-white">Get In Touch</h2>
-          <p className="text-xl text-white/60 max-w-2xl mx-auto">
+          <h2 className="text-4xl sm:text-5xl mb-4 text-gray-900">Get In Touch</h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Ready to start your project? Contact us today for a free consultation
           </p>
         </div>
@@ -37,7 +37,7 @@ export function Contact() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="name" className="block text-white mb-2">
+                  <label htmlFor="name" className="block text-gray-900 mb-2">
                     Name
                   </label>
                   <input
@@ -47,12 +47,12 @@ export function Contact() {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-white/20 bg-[#1a1a2e] text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                     placeholder="Your name"
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-white mb-2">
+                  <label htmlFor="email" className="block text-gray-900 mb-2">
                     Email
                   </label>
                   <input
@@ -62,13 +62,13 @@ export function Contact() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-white/20 bg-[#1a1a2e] text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                     placeholder="your@email.com"
                   />
                 </div>
               </div>
               <div>
-                <label htmlFor="phone" className="block text-white mb-2">
+                <label htmlFor="phone" className="block text-gray-900 mb-2">
                   Phone (Optional)
                 </label>
                 <input
@@ -77,12 +77,12 @@ export function Contact() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-white/20 bg-[#1a1a2e] text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                   placeholder="Your phone number"
                 />
               </div>
               <div>
-                <label htmlFor="message" className="block text-white mb-2">
+                <label htmlFor="message" className="block text-gray-900 mb-2">
                   Message
                 </label>
                 <textarea
@@ -92,7 +92,7 @@ export function Contact() {
                   onChange={handleChange}
                   required
                   rows={5}
-                  className="w-full px-4 py-3 rounded-xl border border-white/20 bg-[#1a1a2e] text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 resize-none"
                   placeholder="Tell us about your project..."
                 ></textarea>
               </div>
@@ -107,34 +107,34 @@ export function Contact() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-[#1a1a2e] rounded-2xl p-6 border border-white/10">
-              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-4 shadow-md">
                 <Mail className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-lg mb-2 text-white">Email</h3>
-              <p className="text-white/60">contact@ceylon3d.com</p>
+              <h3 className="text-lg mb-2 text-gray-900 font-semibold">Email</h3>
+              <p className="text-gray-700">contact@ceylon3d.com</p>
             </div>
 
-            <div className="bg-[#1a1a2e] rounded-2xl p-6 border border-white/10">
-              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-4 shadow-md">
                 <Phone className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-lg mb-2 text-white">Phone</h3>
-              <p className="text-white/60">+1 (555) 123-4567</p>
+              <h3 className="text-lg mb-2 text-gray-900 font-semibold">Phone</h3>
+              <p className="text-gray-700">+1 (555) 123-4567</p>
             </div>
 
-            <div className="bg-[#1a1a2e] rounded-2xl p-6 border border-white/10">
-              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 hover:shadow-lg transition-all">
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-500 rounded-xl flex items-center justify-center mb-4 shadow-md">
                 <MapPin className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-lg mb-2 text-white">Location</h3>
-              <p className="text-white/60">123 Innovation Drive<br />Tech City, TC 12345</p>
+              <h3 className="text-lg mb-2 text-gray-900 font-semibold">Location</h3>
+              <p className="text-gray-700">123 Innovation Drive<br />Tech City, TC 12345</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-20 text-center text-white/60 border-t border-white/10 pt-8">
+      <div className="mt-20 text-center text-gray-600 border-t border-gray-200 pt-8">
         <p>© 2026 Ceylon3D. All rights reserved.</p>
       </div>
     </section>

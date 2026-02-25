@@ -24,7 +24,7 @@ export function Hero() {
   };
 
   return (
-    <section id="home" className="relative min-h-screen flex items-center pt-16 bg-gradient-to-br from-[#1a1a2e] via-[#2d2d44] to-[#1a1a2e] overflow-hidden">
+    <section id="home" className="relative min-h-screen flex items-center pt-16 bg-white overflow-hidden">
       {/* Floating 3D Objects */}
       <div className="absolute top-20 left-10 w-32 h-32 opacity-80 animate-float">
         <ImageWithFallback
@@ -68,22 +68,22 @@ export function Hero() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-white mb-12 leading-tight">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl text-gray-900 mb-12 leading-tight">
             Where ideas become tangible.
           </h1>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
               onClick={scrollToContact}
-              className="bg-white text-[#1a1a2e] px-8 py-4 rounded-full hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-lg group shadow-lg hover:shadow-2xl hover:shadow-white/20"
+              className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-4 rounded-full hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-lg group shadow-lg hover:shadow-2xl hover:shadow-purple-500/30"
             >
               Send your STL
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button 
               onClick={scrollToPortfolio}
-              className="bg-white/10 backdrop-blur-md border-2 border-white/30 text-white px-8 py-4 rounded-full hover:scale-105 hover:bg-white/20 active:scale-95 transition-all duration-200 text-lg flex items-center justify-center gap-2 group shadow-lg hover:shadow-2xl hover:shadow-white/10"
+              className="border-2 border-gray-900 text-gray-900 px-8 py-4 rounded-full hover:scale-105 hover:bg-gray-100 active:scale-95 transition-all duration-200 text-lg flex items-center justify-center gap-2 group shadow-lg"
             >
-              BUY NOW
+              View Portfolio
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
