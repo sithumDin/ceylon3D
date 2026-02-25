@@ -9,11 +9,9 @@ import photo5 from '../3Dphotos/3d5.png';
 const photos = [photo1, photo2, photo3, photo4, photo5];
 
 export function Hero() {
-  const scrollToContact = () => {
-    const element = document.getElementById('contact');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+  const goToCalculator = () => {
+    // Navigate to the cost calculator on the mm site
+    window.location.href = 'http://localhost:5174/#upload';
   };
 
   const scrollToPortfolio = () => {
@@ -73,17 +71,17 @@ export function Hero() {
           </h1>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
-              onClick={scrollToContact}
+              onClick={goToCalculator}
               className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-4 rounded-full hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-lg group shadow-lg hover:shadow-2xl hover:shadow-purple-500/30"
             >
               Send your STL
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button 
-              onClick={scrollToPortfolio}
-              className="border-2 border-gray-900 text-gray-900 px-8 py-4 rounded-full hover:scale-105 hover:bg-gray-100 active:scale-95 transition-all duration-200 text-lg flex items-center justify-center gap-2 group shadow-lg"
+              onClick={() => window.location.href = 'http://localhost:5175/'}
+              className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-4 rounded-full hover:scale-105 active:scale-95 transition-all duration-200 text-lg flex items-center justify-center gap-2 group shadow-lg hover:shadow-2xl hover:shadow-purple-500/30"
             >
-              View Portfolio
+              Buy Now
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
