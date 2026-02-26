@@ -1,6 +1,8 @@
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+const SHOP_URL = import.meta.env.VITE_SHOP_URL || 'http://localhost:5175/browse';
+
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -15,7 +17,7 @@ export function Navbar() {
 
   const scrollToSection = (id: string) => {
     if (id === 'shop' || id === 'ecommerce') {
-      window.location.hash = '/shop';
+      window.location.href = SHOP_URL;
       setIsMenuOpen(false);
       return;
     }

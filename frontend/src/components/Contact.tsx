@@ -1,6 +1,8 @@
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { useState } from 'react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 export function Contact() {
   const [formData, setFormData] = useState({
     name: '',
@@ -8,11 +10,46 @@ export function Contact() {
     phone: '',
     message: ''
   });
+  const [stlFile, setStlFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Thank you for your message! We will get back to you soon.');
-    setFormData({ name: '', email: '', phone: '', message: '' });
+
+    if (!stlFile) {
+      alert('Please select an STL file before submitting.');
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append('file', stlFile);
+    payload.append('name', formData.name);
+    payload.append('email', formData.email);
+    payload.append('phone', formData.phone);
+    payload.append('message', formData.message);
+
+    try {
+      setIsUploading(true);
+
+      const response = await fetch(`${API_BASE_URL}/api/uploads/stl`, {
+        method: 'POST',
+        body: payload,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Upload failed');
+      }
+
+      alert('STL uploaded successfully! We will review your request and contact you soon.');
+      setFormData({ name: '', email: '', phone: '', message: '' });
+      setStlFile(null);
+    } catch (error) {
+      alert('STL upload failed. Please make sure the backend is running and try again.');
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -20,6 +57,11 @@ export function Contact() {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setStlFile(file);
   };
 
   return (
@@ -96,11 +138,29 @@ export function Contact() {
                   placeholder="Tell us about your project..."
                 ></textarea>
               </div>
+              <div>
+                <label htmlFor="stlFileInput" className="block text-gray-900 mb-2">
+                  STL File
+                </label>
+                <input
+                  type="file"
+                  id="stlFileInput"
+                  name="stlFile"
+                  accept=".stl,model/stl,application/sla,application/vnd.ms-pki.stl"
+                  onChange={handleFileChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                />
+                {stlFile && (
+                  <p className="mt-2 text-sm text-gray-600">Selected: {stlFile.name}</p>
+                )}
+              </div>
               <button
                 type="submit"
+                disabled={isUploading}
                 className="w-full sm:w-auto bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-4 rounded-full hover:scale-105 hover:from-pink-600 hover:to-purple-600 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-lg shadow-lg hover:shadow-2xl hover:shadow-purple-500/30"
               >
-                Send Message
+                {isUploading ? 'Uploading...' : 'Upload STL & Send'}
                 <Send className="w-5 h-5" />
               </button>
             </form>

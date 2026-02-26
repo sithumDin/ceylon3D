@@ -8,10 +8,11 @@ import photo5 from '../3Dphotos/3d5.png';
 
 const photos = [photo1, photo2, photo3, photo4, photo5];
 
+const SHOP_URL = import.meta.env.VITE_SHOP_URL || 'http://localhost:5175/browse';
+
 export function Hero() {
   const goToCalculator = () => {
-    // Navigate to the cost calculator on the mm site
-    window.location.href = 'http://localhost:5174/#upload';
+    window.location.href = '/upload';
   };
 
   const scrollToPortfolio = () => {
@@ -78,7 +79,7 @@ export function Hero() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button 
-              onClick={() => window.location.href = 'http://localhost:5175/'}
+              onClick={() => window.location.href = SHOP_URL}
               className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-4 rounded-full hover:scale-105 active:scale-95 transition-all duration-200 text-lg flex items-center justify-center gap-2 group shadow-lg hover:shadow-2xl hover:shadow-purple-500/30"
             >
               Buy Now
