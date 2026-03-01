@@ -1,11 +1,13 @@
 package com.university.itp.controller;
 
+import com.university.itp.dto.OrderStatusUpdateRequest;
 import com.university.itp.model.*;
 import com.university.itp.repository.CartItemRepository;
 import com.university.itp.repository.OrderRepository;
 import com.university.itp.repository.ProductRepository;
 import com.university.itp.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,12 +15,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
+
+    private static final Set<String> ALLOWED_STATUSES = Set.of("PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED");
 
     @Autowired
     private UserRepository userRepository;
@@ -68,17 +73,22 @@ public class OrderController {
         return orderRepository.findByUser(user);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin")
     public List<OrderEntity> allOrders(){
         return orderRepository.findAll();
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/admin/{id}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestBody OrderEntity req){
+    public ResponseEntity<?> updateStatus(@PathVariable Long id, @Valid @RequestBody OrderStatusUpdateRequest req){
+        String normalized = req.getStatus().trim().toUpperCase();
+        if (!ALLOWED_STATUSES.contains(normalized)) {
+            return ResponseEntity.badRequest().body("Invalid order status");
+        }
+
         return orderRepository.findById(id).map(o -> {
-            o.setStatus(req.getStatus());
+            o.setStatus(normalized);
             orderRepository.save(o);
             return ResponseEntity.ok(o);
         }).orElse(ResponseEntity.notFound().build());

@@ -29,13 +29,13 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public Product create(@Valid @RequestBody Product product){
         return productRepository.save(product);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product body){
         return productRepository.findById(id).map(p -> {
@@ -49,7 +49,7 @@ public class ProductController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id){
         return productRepository.findById(id).map(p -> {

@@ -2,13 +2,37 @@ import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Card } from "../components/ui/card";
+import { useAuth } from "../contexts/AuthContext";
 import { Package, Heart, Settings, CreditCard, MapPin, Bell } from "lucide-react";
 
 export function MyAccount() {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="bg-gray-50 min-h-screen py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card className="p-8 text-center">
+            <h1 className="text-3xl mb-2">My Account</h1>
+            <p className="text-gray-600 mb-6">Sign in or create a user account to manage your orders.</p>
+            <Link to="/auth">
+              <Button>Go to Sign In</Button>
+            </Link>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl mb-8">My Account</h1>
+
+        <Card className="p-4 mb-6">
+          <div className="font-medium">{user.fullName || "Customer"}</div>
+          <div className="text-sm text-gray-600">{user.email}</div>
+        </Card>
 
         <Tabs defaultValue="orders" className="space-y-6">
           <TabsList className="bg-white p-1">
@@ -57,7 +81,7 @@ export function MyAccount() {
                   <input
                     type="text"
                     className="w-full border rounded-md px-3 py-2"
-                    placeholder="John Doe"
+                    defaultValue={user.fullName ?? ""}
                   />
                 </div>
                 <div>
@@ -65,7 +89,7 @@ export function MyAccount() {
                   <input
                     type="email"
                     className="w-full border rounded-md px-3 py-2"
-                    placeholder="john@example.com"
+                    defaultValue={user.email}
                   />
                 </div>
                 <div>

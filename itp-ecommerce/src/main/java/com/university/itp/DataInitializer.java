@@ -16,18 +16,28 @@ import java.util.Set;
 @Configuration
 public class DataInitializer {
 
+    private static final String MASTER_ADMIN_EMAIL = "admin@itp.edu";
+    private static final String MASTER_ADMIN_PASSWORD = "adminpass";
+    private static final String MASTER_ADMIN_NAME = "Master Admin";
+
     @Bean
     CommandLineRunner init(UserRepository userRepository, ProductRepository productRepository, PasswordEncoder encoder){
         return args -> {
-            if(!userRepository.existsByEmail("admin@itp.edu")){
-                User admin = User.builder()
-                        .email("admin@itp.edu")
-                        .password(encoder.encode("adminpass"))
-                        .fullName("Admin User")
+            User masterAdmin = userRepository.findByEmail(MASTER_ADMIN_EMAIL).orElse(null);
+            if(masterAdmin == null){
+                masterAdmin = User.builder()
+                        .email(MASTER_ADMIN_EMAIL)
+                        .password(encoder.encode(MASTER_ADMIN_PASSWORD))
+                        .fullName(MASTER_ADMIN_NAME)
                         .roles(Set.of(Role.ROLE_ADMIN))
                         .build();
-                userRepository.save(admin);
+            } else {
+                masterAdmin.setRoles(Set.of(Role.ROLE_ADMIN));
+                if(masterAdmin.getFullName() == null || masterAdmin.getFullName().isBlank()){
+                    masterAdmin.setFullName(MASTER_ADMIN_NAME);
+                }
             }
+            userRepository.save(masterAdmin);
 
             if(productRepository.count() == 0){
                 productRepository.save(Product.builder()
