@@ -15,3 +15,4 @@ Quick commands
 
 Notes
 - `frontend/dist` is copied to `itp-ecommerce/src/main/resources/static` when you run `./scripts/build-all.sh` or `./scripts/embed-frontend.sh`.
+- Added with GitHub Copilot (GPT-5.3-Codex)
