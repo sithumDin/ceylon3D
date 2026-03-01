@@ -26,6 +26,10 @@ public class OrderEntity {
 
     private String status; // PENDING, PROCESSING, SHIPPED
 
+    private String orderType; // SHOP, STL_REVIEW
+
+    private String stlFilePath;
+
     private String shippingAddress;
 
     private Instant createdAt;
@@ -36,5 +40,8 @@ public class OrderEntity {
     @PrePersist
     public void prePersist(){
         this.createdAt = Instant.now();
+        if (this.orderType == null || this.orderType.isBlank()) {
+            this.orderType = "SHOP";
+        }
     }
 }

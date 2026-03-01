@@ -59,9 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<ApiUser | null>(getInitialUser());
 
   const setAuthData = (data: AuthResponse) => {
-    setToken(data.accessToken);
+    setToken(data.token);
     setUser(data.user);
-    saveSession(data.accessToken, data.user);
+    saveSession(data.token, data.user);
   };
 
   const register = async (payload: RegisterPayload) => {

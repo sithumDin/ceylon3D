@@ -8,23 +8,54 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 
 const ORDER_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
+const ORDER_TYPES = ["SHOP", "STL_REVIEW"] as const;
+
+const MACHINE_RATE = 50;
+const ENERGY_RATE = 30;
+const LABOR_FLAT = 100;
+const SUPPORT_FLAT = 100;
+const DEFAULT_MARKUP = 1.5;
+
+const MATERIAL_RATES: Record<"PLA" | "PLA+" | "ABS" | "ABS+", number> = {
+  PLA: 5,
+  "PLA+": 5,
+  ABS: 6,
+  "ABS+": 6,
+};
 
 interface CostInputs {
-  materialCost: number;
   printHours: number;
-  hourlyRate: number;
+  printMinutes: number;
+  weightGrams: number;
+  materialType: "PLA" | "PLA+" | "ABS" | "ABS+";
+  supportStructures: boolean;
+  markupMultiplier: number;
+}
+
+interface CostSummary {
+  materialCost: number;
+  machineCost: number;
+  energyCost: number;
   laborCost: number;
-  overheadPercent: number;
-  profitPercent: number;
+  supportCost: number;
+  totalCost: number;
+  sellingPrice: number;
+}
+
+interface OrderListProps {
+  title: string;
+  orders: OrderApi[];
+  onStatusChange: (orderId: number, status: string) => void;
+  onTypeChange: (orderId: number, orderType: string) => void;
 }
 
 const defaultCostInputs: CostInputs = {
-  materialCost: 0,
   printHours: 0,
-  hourlyRate: 0,
-  laborCost: 0,
-  overheadPercent: 15,
-  profitPercent: 20,
+  printMinutes: 0,
+  weightGrams: 0,
+  materialType: "PLA",
+  supportStructures: false,
+  markupMultiplier: DEFAULT_MARKUP,
 };
 
 const emptyProduct: ProductApi = {
@@ -34,6 +65,80 @@ const emptyProduct: ProductApi = {
   stock: 0,
   imagePath: "",
 };
+
+function calculateCost(inputs: CostInputs): CostSummary {
+  const totalHours = inputs.printHours + inputs.printMinutes / 60;
+  const materialCost = inputs.weightGrams * MATERIAL_RATES[inputs.materialType];
+  const machineCost = totalHours * MACHINE_RATE;
+  const energyCost = totalHours * ENERGY_RATE;
+  const laborCost = LABOR_FLAT;
+  const supportCost = inputs.supportStructures ? SUPPORT_FLAT : 0;
+  const totalCost = materialCost + machineCost + energyCost + laborCost + supportCost;
+  const sellingPrice = totalCost * inputs.markupMultiplier;
+
+  return {
+    materialCost,
+    machineCost,
+    energyCost,
+    laborCost,
+    supportCost,
+    totalCost,
+    sellingPrice,
+  };
+}
+
+function OrderList({ title, orders, onStatusChange, onTypeChange }: OrderListProps) {
+  return (
+    <Card className="p-6">
+      <h2 className="text-xl mb-4">{title}</h2>
+      <div className="space-y-3 max-h-[32rem] overflow-auto">
+        {orders.map((order) => (
+          <div key={order.id} className="border rounded-md p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div>
+                <div className="font-medium">Order #{order.id}</div>
+                <div className="text-sm text-gray-600">{order.user?.email ?? "Unknown user"}</div>
+              </div>
+              <div className="text-sm">LKR {Number(order.totalAmount).toFixed(2)}</div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+              <select
+                className="border rounded-md px-3 py-2"
+                value={order.status}
+                onChange={(event) => onStatusChange(order.id, event.target.value)}
+              >
+                {ORDER_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="border rounded-md px-3 py-2"
+                value={(order.orderType ?? "SHOP").toUpperCase()}
+                onChange={(event) => onTypeChange(order.id, event.target.value)}
+              >
+                {ORDER_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="text-sm text-gray-600">{new Date(order.createdAt).toLocaleString()}</div>
+            {order.shippingAddress && <div className="text-sm text-gray-600 mt-1">Address: {order.shippingAddress}</div>}
+            {order.stlFilePath && <div className="text-sm text-gray-600 mt-1">STL File: {order.stlFilePath}</div>}
+          </div>
+        ))}
+
+        {orders.length === 0 && <div className="text-sm text-gray-600">No orders in this category.</div>}
+      </div>
+    </Card>
+  );
+}
 
 export function AdminDashboard() {
   const { isAdmin, token, isAuthenticated } = useAuth();
@@ -45,16 +150,13 @@ export function AdminDashboard() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
 
-  const costSummary = useMemo(() => {
-    const machineCost = costInputs.printHours * costInputs.hourlyRate;
-    const baseCost = costInputs.materialCost + machineCost + costInputs.laborCost;
-    const overhead = baseCost * (costInputs.overheadPercent / 100);
-    const subtotal = baseCost + overhead;
-    const profit = subtotal * (costInputs.profitPercent / 100);
-    const total = subtotal + profit;
+  const costSummary = useMemo(() => calculateCost(costInputs), [costInputs]);
 
-    return { machineCost, baseCost, overhead, profit, total };
-  }, [costInputs]);
+  const groupedOrders = useMemo(() => {
+    const shop = orders.filter((order) => (order.orderType ?? "SHOP").toUpperCase() !== "STL_REVIEW");
+    const stlReview = orders.filter((order) => (order.orderType ?? "SHOP").toUpperCase() === "STL_REVIEW");
+    return { shop, stlReview };
+  }, [orders]);
 
   const loadDashboardData = async () => {
     if (!token) {
@@ -165,6 +267,24 @@ export function AdminDashboard() {
     }
   };
 
+  const updateOrderType = async (orderId: number, orderType: string) => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/orders/admin/${orderId}/type`, {
+        method: "PUT",
+        body: JSON.stringify({ orderType }),
+      }, token);
+      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, orderType } : order)));
+      toast.success("Order category updated");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update order category";
+      toast.error(message);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="bg-gray-50 min-h-screen py-12">
@@ -201,10 +321,10 @@ export function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div>
           <h1 className="text-3xl">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage products, orders, and print costing.</p>
+          <p className="text-gray-600">Manage products, categorized orders, and print costing.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="text-sm text-gray-500">Products</div>
             <div className="text-3xl font-semibold">{products.length}</div>
@@ -216,6 +336,10 @@ export function AdminDashboard() {
           <Card className="p-4">
             <div className="text-sm text-gray-500">Pending Orders</div>
             <div className="text-3xl font-semibold">{pendingOrders}</div>
+          </Card>
+          <Card className="p-4">
+            <div className="text-sm text-gray-500">STL Review Orders</div>
+            <div className="text-3xl font-semibold">{groupedOrders.stlReview.length}</div>
           </Card>
         </div>
 
@@ -299,57 +423,32 @@ export function AdminDashboard() {
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h2 className="text-xl mb-4">Orders</h2>
-            <div className="space-y-3 max-h-[32rem] overflow-auto">
-              {orders.map((order) => (
-                <div key={order.id} className="border rounded-md p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                    <div>
-                      <div className="font-medium">Order #{order.id}</div>
-                      <div className="text-sm text-gray-600">{order.user?.email ?? "Unknown user"}</div>
-                    </div>
-                    <div className="text-sm">LKR {Number(order.totalAmount).toFixed(2)}</div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
-                    <select
-                      className="border rounded-md px-3 py-2"
-                      value={order.status}
-                      onChange={(event) => updateOrderStatus(order.id, event.target.value)}
-                    >
-                      {ORDER_STATUSES.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="text-sm text-gray-600 self-center">{new Date(order.createdAt).toLocaleString()}</div>
-                  </div>
-                </div>
-              ))}
-              {!loading && orders.length === 0 && <div className="text-sm text-gray-600">No orders yet.</div>}
-            </div>
-          </Card>
+          <OrderList
+            title="Shop Orders"
+            orders={groupedOrders.shop}
+            onStatusChange={updateOrderStatus}
+            onTypeChange={updateOrderType}
+          />
         </div>
 
+        <OrderList
+          title="STL File Review Orders"
+          orders={groupedOrders.stlReview}
+          onStatusChange={updateOrderStatus}
+          onTypeChange={updateOrderType}
+        />
+
         <Card className="p-6">
-          <h2 className="text-xl mb-4">Cost Calculator</h2>
+          <h2 className="text-xl mb-2">Cost Calculator (PDF Method)</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Selling Price = (Material Cost + Machine Cost + Energy Cost + Labor Cost + Support Cost) × Markup
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
             <Input
               type="number"
               min={0}
-              step="0.01"
-              placeholder="Material cost"
-              value={costInputs.materialCost}
-              onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, materialCost: Number(event.target.value || 0) }))
-              }
-            />
-            <Input
-              type="number"
-              min={0}
-              step="0.1"
+              step="1"
               placeholder="Print hours"
               value={costInputs.printHours}
               onChange={(event) =>
@@ -359,65 +458,89 @@ export function AdminDashboard() {
             <Input
               type="number"
               min={0}
-              step="0.01"
-              placeholder="Hourly machine rate"
-              value={costInputs.hourlyRate}
+              max={59}
+              step="1"
+              placeholder="Print minutes"
+              value={costInputs.printMinutes}
               onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, hourlyRate: Number(event.target.value || 0) }))
+                setCostInputs((prev) => ({ ...prev, printMinutes: Number(event.target.value || 0) }))
               }
             />
             <Input
               type="number"
               min={0}
               step="0.01"
-              placeholder="Labor cost"
-              value={costInputs.laborCost}
+              placeholder="Weight (grams)"
+              value={costInputs.weightGrams}
               onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, laborCost: Number(event.target.value || 0) }))
+                setCostInputs((prev) => ({ ...prev, weightGrams: Number(event.target.value || 0) }))
               }
             />
+
+            <select
+              className="border rounded-md px-3 py-2"
+              value={costInputs.materialType}
+              onChange={(event) =>
+                setCostInputs((prev) => ({ ...prev, materialType: event.target.value as CostInputs["materialType"] }))
+              }
+            >
+              <option value="PLA">PLA (LKR 5/g)</option>
+              <option value="PLA+">PLA+ (LKR 5/g)</option>
+              <option value="ABS">ABS (LKR 6/g)</option>
+              <option value="ABS+">ABS+ (LKR 6/g)</option>
+            </select>
+
+            <label className="flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={costInputs.supportStructures}
+                onChange={(event) =>
+                  setCostInputs((prev) => ({ ...prev, supportStructures: event.target.checked }))
+                }
+              />
+              Add support structure cost (LKR 100)
+            </label>
+
             <Input
               type="number"
               min={0}
               step="0.1"
-              placeholder="Overhead %"
-              value={costInputs.overheadPercent}
+              placeholder="Markup multiplier"
+              value={costInputs.markupMultiplier}
               onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, overheadPercent: Number(event.target.value || 0) }))
-              }
-            />
-            <Input
-              type="number"
-              min={0}
-              step="0.1"
-              placeholder="Profit %"
-              value={costInputs.profitPercent}
-              onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, profitPercent: Number(event.target.value || 0) }))
+                setCostInputs((prev) => ({ ...prev, markupMultiplier: Number(event.target.value || 1) }))
               }
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-7 gap-3 text-sm">
+            <div className="border rounded-md p-3">
+              <div className="text-gray-500">Material Cost</div>
+              <div className="font-semibold">LKR {costSummary.materialCost.toFixed(2)}</div>
+            </div>
             <div className="border rounded-md p-3">
               <div className="text-gray-500">Machine Cost</div>
               <div className="font-semibold">LKR {costSummary.machineCost.toFixed(2)}</div>
             </div>
             <div className="border rounded-md p-3">
-              <div className="text-gray-500">Base Cost</div>
-              <div className="font-semibold">LKR {costSummary.baseCost.toFixed(2)}</div>
+              <div className="text-gray-500">Energy Cost</div>
+              <div className="font-semibold">LKR {costSummary.energyCost.toFixed(2)}</div>
             </div>
             <div className="border rounded-md p-3">
-              <div className="text-gray-500">Overhead</div>
-              <div className="font-semibold">LKR {costSummary.overhead.toFixed(2)}</div>
+              <div className="text-gray-500">Labor Cost</div>
+              <div className="font-semibold">LKR {costSummary.laborCost.toFixed(2)}</div>
             </div>
             <div className="border rounded-md p-3">
-              <div className="text-gray-500">Profit</div>
-              <div className="font-semibold">LKR {costSummary.profit.toFixed(2)}</div>
+              <div className="text-gray-500">Support Cost</div>
+              <div className="font-semibold">LKR {costSummary.supportCost.toFixed(2)}</div>
+            </div>
+            <div className="border rounded-md p-3">
+              <div className="text-gray-500">Total Cost</div>
+              <div className="font-semibold">LKR {costSummary.totalCost.toFixed(2)}</div>
             </div>
             <div className="border rounded-md p-3 bg-blue-50">
               <div className="text-gray-500">Recommended Price</div>
-              <div className="font-semibold">LKR {costSummary.total.toFixed(2)}</div>
+              <div className="font-semibold">LKR {costSummary.sellingPrice.toFixed(2)}</div>
             </div>
           </div>
         </Card>

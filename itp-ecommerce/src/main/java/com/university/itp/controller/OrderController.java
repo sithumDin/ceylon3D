@@ -1,6 +1,7 @@
 package com.university.itp.controller;
 
 import com.university.itp.dto.OrderStatusUpdateRequest;
+import com.university.itp.dto.OrderTypeUpdateRequest;
 import com.university.itp.model.*;
 import com.university.itp.repository.CartItemRepository;
 import com.university.itp.repository.OrderRepository;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 public class OrderController {
 
     private static final Set<String> ALLOWED_STATUSES = Set.of("PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED");
+    private static final Set<String> ALLOWED_ORDER_TYPES = Set.of("SHOP", "STL_REVIEW");
 
     @Autowired
     private UserRepository userRepository;
@@ -47,6 +49,7 @@ public class OrderController {
         OrderEntity order = new OrderEntity();
         order.setUser(user);
         order.setStatus("PENDING");
+        order.setOrderType("SHOP");
         order.setShippingAddress(req.getShippingAddress());
 
         List<OrderItem> items = cart.stream().map(ci -> {
@@ -89,6 +92,21 @@ public class OrderController {
 
         return orderRepository.findById(id).map(o -> {
             o.setStatus(normalized);
+            orderRepository.save(o);
+            return ResponseEntity.ok(o);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/admin/{id}/type")
+    public ResponseEntity<?> updateOrderType(@PathVariable Long id, @Valid @RequestBody OrderTypeUpdateRequest req){
+        String normalized = req.getOrderType().trim().toUpperCase();
+        if (!ALLOWED_ORDER_TYPES.contains(normalized)) {
+            return ResponseEntity.badRequest().body("Invalid order type");
+        }
+
+        return orderRepository.findById(id).map(o -> {
+            o.setOrderType(normalized);
             orderRepository.save(o);
             return ResponseEntity.ok(o);
         }).orElse(ResponseEntity.notFound().build());

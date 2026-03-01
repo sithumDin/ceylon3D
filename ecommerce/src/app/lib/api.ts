@@ -8,7 +8,7 @@ export interface ApiUser {
 }
 
 export interface AuthResponse {
-  accessToken: string;
+  token: string;
   tokenType: string;
   user: ApiUser;
 }
@@ -32,6 +32,8 @@ export interface OrderItemApi {
 export interface OrderApi {
   id: number;
   status: string;
+  orderType?: "SHOP" | "STL_REVIEW" | string;
+  stlFilePath?: string;
   shippingAddress?: string;
   totalAmount: number;
   createdAt: string;
