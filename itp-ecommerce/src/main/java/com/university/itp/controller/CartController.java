@@ -28,14 +28,14 @@ public class CartController {
     private ProductRepository productRepository;
 
     @GetMapping
-    public ResponseEntity<List<CartItem>> getCart(Authentication auth){
+    public ResponseEntity<List<CartItem>> getCart(Authentication auth) {
         String email = auth.getName();
         User user = userRepository.findByEmail(email).orElseThrow();
         return ResponseEntity.ok(cartItemRepository.findByUser(user));
     }
 
     @PostMapping
-    public ResponseEntity<?> addToCart(Authentication auth, @RequestBody CartItem req){
+    public ResponseEntity<?> addToCart(Authentication auth, @RequestBody CartItem req) {
         String email = auth.getName();
         User user = userRepository.findByEmail(email).orElseThrow();
         Product p = productRepository.findById(req.getProduct().getId()).orElseThrow();
@@ -45,8 +45,13 @@ public class CartController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody CartItem req, Authentication auth){
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody CartItem req, Authentication auth) {
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
         return cartItemRepository.findById(id).map(item -> {
+            if (!item.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).build();
+            }
             item.setQuantity(req.getQuantity());
             cartItemRepository.save(item);
             return ResponseEntity.ok(item);
@@ -54,8 +59,13 @@ public class CartController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable Long id, Authentication auth){
+    public ResponseEntity<?> remove(@PathVariable Long id, Authentication auth) {
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
         return cartItemRepository.findById(id).map(item -> {
+            if (!item.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).build();
+            }
             cartItemRepository.delete(item);
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
