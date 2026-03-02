@@ -1,24 +1,173 @@
-import { Link } from "react-router";
+import { FormEvent, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Card } from "../components/ui/card";
-import { useAuth } from "../contexts/AuthContext";
-import { Package, Heart, Settings, CreditCard, MapPin, Bell } from "lucide-react";
+import { Package, Heart, Settings, CreditCard, MapPin, Bell, LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { login, register } from "../lib/api";
 
 export function MyAccount() {
-  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  if (!isAuthenticated || !user) {
+  const user = useMemo(() => {
+    const value = localStorage.getItem("authUser");
+    if (!value) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(value) as { email?: string; fullName?: string };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+
+  const handleLogout = () => {
+    const authKeys = [
+      "token",
+      "authToken",
+      "accessToken",
+      "jwt",
+      "user",
+      "authUser",
+      "refreshToken",
+    ];
+
+    authKeys.forEach((key) => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+
+    toast.success("You have been logged out");
+    navigate("/");
+    window.location.reload();
+  };
+
+  const handleLogin = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const data = await login(email, password);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("authUser", JSON.stringify(data.user));
+      toast.success("Login successful");
+      navigate("/account");
+      window.location.reload();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Login failed";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const data = await register(fullName, email, password);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("authUser", JSON.stringify(data.user));
+      toast.success("Account created and logged in");
+      navigate("/account");
+      window.location.reload();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Registration failed";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isLoggedIn) {
     return (
       <div className="bg-gray-50 min-h-screen py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="p-8 text-center">
-            <h1 className="text-3xl mb-2">My Account</h1>
-            <p className="text-gray-600 mb-6">Sign in or create a user account to manage your orders.</p>
-            <Link to="/auth">
-              <Button>Go to Sign In</Button>
-            </Link>
-          </Card>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl mb-6">My Account</h1>
+
+          <Tabs defaultValue="login" className="space-y-4">
+            <TabsList className="bg-white p-1">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="login">
+              <Card className="p-6">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <input
+                      type="email"
+                      className="w-full border rounded-md px-3 py-2"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Password</label>
+                    <input
+                      type="password"
+                      className="w-full border rounded-md px-3 py-2"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Logging in..." : "Log In"}
+                  </Button>
+                </form>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="register">
+              <Card className="p-6">
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      className="w-full border rounded-md px-3 py-2"
+                      value={fullName}
+                      onChange={(event) => setFullName(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <input
+                      type="email"
+                      className="w-full border rounded-md px-3 py-2"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Password</label>
+                    <input
+                      type="password"
+                      className="w-full border rounded-md px-3 py-2"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Creating account..." : "Create Account"}
+                  </Button>
+                </form>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     );
@@ -27,12 +176,16 @@ export function MyAccount() {
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl mb-8">My Account</h1>
-
-        <Card className="p-4 mb-6">
-          <div className="font-medium">{user.fullName || "Customer"}</div>
-          <div className="text-sm text-gray-600">{user.email}</div>
-        </Card>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl">My Account</h1>
+            <p className="text-sm text-gray-600 mt-1">{user?.fullName || user?.email || "Signed in"}</p>
+          </div>
+          <Button variant="destructive" onClick={handleLogout}>
+            <LogOut className="size-4" />
+            Log Out
+          </Button>
+        </div>
 
         <Tabs defaultValue="orders" className="space-y-6">
           <TabsList className="bg-white p-1">
@@ -81,7 +234,7 @@ export function MyAccount() {
                   <input
                     type="text"
                     className="w-full border rounded-md px-3 py-2"
-                    defaultValue={user.fullName ?? ""}
+                    placeholder="John Doe"
                   />
                 </div>
                 <div>
@@ -89,7 +242,7 @@ export function MyAccount() {
                   <input
                     type="email"
                     className="w-full border rounded-md px-3 py-2"
-                    defaultValue={user.email}
+                    placeholder="john@example.com"
                   />
                 </div>
                 <div>

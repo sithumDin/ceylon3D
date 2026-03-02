@@ -3,24 +3,25 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:itpdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
     username: ${SPRING_DATASOURCE_USERNAME:sa}
     password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
   jpa:
     hibernate:
       ddl-auto: update
-    database-platform: ${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.H2Dialect}
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
+  sql:
+    init:
+      mode: never
   h2:
     console:
       enabled: true
       path: /h2-console
+
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
+
 jwt:
   secret: ${JWT_SECRET:change-me-super-secret-change-me-super-secret}
-  expirationMs: 86400000
-logging:
-  level:
-    org:
-      springframework:
-        web: DEBUG
+  expirationMs: ${JWT_EXPIRATIONMS:86400000}

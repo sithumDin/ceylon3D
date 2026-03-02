@@ -88,6 +88,8 @@ export function STLUploadPage() {
     payload.append('name', 'Website User');
     payload.append('email', 'not-provided@ceylon3d.local');
     payload.append('phone', '');
+    payload.append('material', selectedMaterial);
+    payload.append('quantity', String(quantity));
     payload.append('message', `Material: ${selectedMaterial}, Quantity: ${quantity}, Estimated Total: $${totalPrice.toFixed(2)}`);
 
     try {

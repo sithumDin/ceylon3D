@@ -1,548 +1,339 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { apiRequest, OrderApi, ProductApi } from "../lib/api";
-import { useAuth } from "../contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  calculateStlCost,
+  createProduct,
+  getAdminShopOrders,
+  getAdminStlOrders,
+  ShopOrder,
+  StlOrder,
+  updateAdminShopOrderStatus,
+  updateAdminStlOrderStatus,
+} from "../lib/api";
 import { toast } from "sonner";
 
-const ORDER_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
-const ORDER_TYPES = ["SHOP", "STL_REVIEW"] as const;
-
-const MACHINE_RATE = 50;
-const ENERGY_RATE = 30;
-const LABOR_FLAT = 100;
-const SUPPORT_FLAT = 100;
-const DEFAULT_MARKUP = 1.5;
-
-const MATERIAL_RATES: Record<"PLA" | "PLA+" | "ABS" | "ABS+", number> = {
-  PLA: 5,
-  "PLA+": 5,
-  ABS: 6,
-  "ABS+": 6,
-};
-
-interface CostInputs {
-  printHours: number;
-  printMinutes: number;
-  weightGrams: number;
-  materialType: "PLA" | "PLA+" | "ABS" | "ABS+";
-  supportStructures: boolean;
-  markupMultiplier: number;
-}
-
-interface CostSummary {
-  materialCost: number;
-  machineCost: number;
-  energyCost: number;
-  laborCost: number;
-  supportCost: number;
-  totalCost: number;
-  sellingPrice: number;
-}
-
-interface OrderListProps {
-  title: string;
-  orders: OrderApi[];
-  onStatusChange: (orderId: number, status: string) => void;
-  onTypeChange: (orderId: number, orderType: string) => void;
-}
-
-const defaultCostInputs: CostInputs = {
-  printHours: 0,
-  printMinutes: 0,
-  weightGrams: 0,
-  materialType: "PLA",
-  supportStructures: false,
-  markupMultiplier: DEFAULT_MARKUP,
-};
-
-const emptyProduct: ProductApi = {
-  name: "",
-  description: "",
-  price: 0,
-  stock: 0,
-  imagePath: "",
-};
-
-function calculateCost(inputs: CostInputs): CostSummary {
-  const totalHours = inputs.printHours + inputs.printMinutes / 60;
-  const materialCost = inputs.weightGrams * MATERIAL_RATES[inputs.materialType];
-  const machineCost = totalHours * MACHINE_RATE;
-  const energyCost = totalHours * ENERGY_RATE;
-  const laborCost = LABOR_FLAT;
-  const supportCost = inputs.supportStructures ? SUPPORT_FLAT : 0;
-  const totalCost = materialCost + machineCost + energyCost + laborCost + supportCost;
-  const sellingPrice = totalCost * inputs.markupMultiplier;
-
-  return {
-    materialCost,
-    machineCost,
-    energyCost,
-    laborCost,
-    supportCost,
-    totalCost,
-    sellingPrice,
-  };
-}
-
-function OrderList({ title, orders, onStatusChange, onTypeChange }: OrderListProps) {
-  return (
-    <Card className="p-6">
-      <h2 className="text-xl mb-4">{title}</h2>
-      <div className="space-y-3 max-h-[32rem] overflow-auto">
-        {orders.map((order) => (
-          <div key={order.id} className="border rounded-md p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <div>
-                <div className="font-medium">Order #{order.id}</div>
-                <div className="text-sm text-gray-600">{order.user?.email ?? "Unknown user"}</div>
-              </div>
-              <div className="text-sm">LKR {Number(order.totalAmount).toFixed(2)}</div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-              <select
-                className="border rounded-md px-3 py-2"
-                value={order.status}
-                onChange={(event) => onStatusChange(order.id, event.target.value)}
-              >
-                {ORDER_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="border rounded-md px-3 py-2"
-                value={(order.orderType ?? "SHOP").toUpperCase()}
-                onChange={(event) => onTypeChange(order.id, event.target.value)}
-              >
-                {ORDER_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="text-sm text-gray-600">{new Date(order.createdAt).toLocaleString()}</div>
-            {order.shippingAddress && <div className="text-sm text-gray-600 mt-1">Address: {order.shippingAddress}</div>}
-            {order.stlFilePath && <div className="text-sm text-gray-600 mt-1">STL File: {order.stlFilePath}</div>}
-          </div>
-        ))}
-
-        {orders.length === 0 && <div className="text-sm text-gray-600">No orders in this category.</div>}
-      </div>
-    </Card>
-  );
-}
+const SHOP_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+const STL_STATUSES = ["PENDING_QUOTE", "QUOTED", "PRINTING", "READY", "DELIVERED", "CANCELLED"];
+const STL_MATERIALS = ["PLA", "ABS", "PETG", "RESIN"];
 
 export function AdminDashboard() {
-  const { isAdmin, token, isAuthenticated } = useAuth();
-  const [products, setProducts] = useState<ProductApi[]>([]);
-  const [orders, setOrders] = useState<OrderApi[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [savingProduct, setSavingProduct] = useState(false);
-  const [form, setForm] = useState<ProductApi>(emptyProduct);
-  const [editingProductId, setEditingProductId] = useState<number | null>(null);
-  const [costInputs, setCostInputs] = useState<CostInputs>(defaultCostInputs);
+  const [shopOrders, setShopOrders] = useState<ShopOrder[]>([]);
+  const [stlOrders, setStlOrders] = useState<StlOrder[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [calculator, setCalculator] = useState({ fileSizeBytes: "1048576", material: "PLA", quantity: "1" });
+  const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
+  const [productForm, setProductForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    stock: "",
+    imagePath: "",
+  });
 
-  const costSummary = useMemo(() => calculateCost(costInputs), [costInputs]);
-
-  const groupedOrders = useMemo(() => {
-    const shop = orders.filter((order) => (order.orderType ?? "SHOP").toUpperCase() !== "STL_REVIEW");
-    const stlReview = orders.filter((order) => (order.orderType ?? "SHOP").toUpperCase() === "STL_REVIEW");
-    return { shop, stlReview };
-  }, [orders]);
-
-  const loadDashboardData = async () => {
-    if (!token) {
-      return;
+  const authUser = useMemo(() => {
+    const value = localStorage.getItem("authUser");
+    if (!value) {
+      return null;
     }
 
     try {
-      setLoading(true);
-      const [productData, orderData] = await Promise.all([
-        apiRequest<ProductApi[]>("/api/products"),
-        apiRequest<OrderApi[]>("/api/orders/admin", {}, token),
-      ]);
-      setProducts(productData);
-      setOrders(orderData);
+      return JSON.parse(value) as { fullName?: string; email?: string; roles?: string[] };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const isAdmin = Boolean(authUser?.roles?.includes("ROLE_ADMIN"));
+  const hasToken = Boolean(localStorage.getItem("token"));
+
+  const loadData = async () => {
+    setLoadingOrders(true);
+    try {
+      const [shop, stl] = await Promise.all([getAdminShopOrders(), getAdminStlOrders()]);
+      setShopOrders(shop);
+      setStlOrders(stl);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load dashboard";
+      const message = error instanceof Error ? error.message : "Failed to load admin data";
       toast.error(message);
     } finally {
-      setLoading(false);
+      setLoadingOrders(false);
     }
   };
 
   useEffect(() => {
-    loadDashboardData();
-  }, [token]);
+    if (hasToken && isAdmin) {
+      loadData();
+    }
+  }, [hasToken, isAdmin]);
 
-  const resetProductForm = () => {
-    setForm(emptyProduct);
-    setEditingProductId(null);
+  const onShopStatusChange = async (orderId: number, status: string) => {
+    try {
+      await updateAdminShopOrderStatus(orderId, status);
+      toast.success("Shop order status updated");
+      await loadData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Status update failed";
+      toast.error(message);
+    }
   };
 
-  const handleProductSubmit = async (event: React.FormEvent) => {
+  const onStlStatusChange = async (orderId: number, status: string) => {
+    try {
+      await updateAdminStlOrderStatus(orderId, status);
+      toast.success("STL order status updated");
+      await loadData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Status update failed";
+      toast.error(message);
+    }
+  };
+
+  const onCalculate = async (event: FormEvent) => {
     event.preventDefault();
-    if (!token) {
-      return;
-    }
 
     try {
-      setSavingProduct(true);
-      if (editingProductId) {
-        await apiRequest(`/api/products/${editingProductId}`, {
-          method: "PUT",
-          body: JSON.stringify(form),
-        }, token);
-        toast.success("Product updated");
-      } else {
-        await apiRequest("/api/products", {
-          method: "POST",
-          body: JSON.stringify(form),
-        }, token);
-        toast.success("Product added");
-      }
-
-      await loadDashboardData();
-      resetProductForm();
+      const fileSizeBytes = Number(calculator.fileSizeBytes);
+      const quantity = Number(calculator.quantity);
+      const result = await calculateStlCost(fileSizeBytes, calculator.material, quantity);
+      setEstimatedPrice(result.estimatedPrice);
+      toast.success("STL price calculated");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save product";
-      toast.error(message);
-    } finally {
-      setSavingProduct(false);
-    }
-  };
-
-  const handleEditProduct = (product: ProductApi) => {
-    setForm({
-      name: product.name,
-      description: product.description ?? "",
-      price: Number(product.price ?? 0),
-      stock: Number(product.stock ?? 0),
-      imagePath: product.imagePath ?? "",
-    });
-    setEditingProductId(product.id ?? null);
-  };
-
-  const handleDeleteProduct = async (id?: number) => {
-    if (!token || !id) {
-      return;
-    }
-
-    try {
-      await apiRequest(`/api/products/${id}`, { method: "DELETE" }, token);
-      toast.success("Product removed");
-      await loadDashboardData();
-      if (editingProductId === id) {
-        resetProductForm();
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to remove product";
+      const message = error instanceof Error ? error.message : "Cost calculation failed";
       toast.error(message);
     }
   };
 
-  const updateOrderStatus = async (orderId: number, status: string) => {
-    if (!token) {
-      return;
-    }
+  const onCreateProduct = async (event: FormEvent) => {
+    event.preventDefault();
 
     try {
-      await apiRequest(`/api/orders/admin/${orderId}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      }, token);
-      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
-      toast.success("Order status updated");
+      await createProduct({
+        name: productForm.name,
+        description: productForm.description,
+        price: Number(productForm.price),
+        stock: Number(productForm.stock),
+        imagePath: productForm.imagePath || undefined,
+      });
+
+      toast.success("Product created");
+      setProductForm({ name: "", description: "", price: "", stock: "", imagePath: "" });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update order status";
+      const message = error instanceof Error ? error.message : "Product creation failed";
       toast.error(message);
     }
   };
 
-  const updateOrderType = async (orderId: number, orderType: string) => {
-    if (!token) {
-      return;
-    }
-
-    try {
-      await apiRequest(`/api/orders/admin/${orderId}/type`, {
-        method: "PUT",
-        body: JSON.stringify({ orderType }),
-      }, token);
-      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, orderType } : order)));
-      toast.success("Order category updated");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to update order category";
-      toast.error(message);
-    }
-  };
-
-  if (!isAuthenticated) {
+  if (!hasToken) {
     return (
-      <div className="bg-gray-50 min-h-screen py-12">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="p-8 text-center">
-            <h1 className="text-3xl mb-2">Admin Dashboard</h1>
-            <p className="text-gray-600 mb-6">Please sign in as an admin to continue.</p>
-            <Link to="/auth">
-              <Button>Go to Sign In</Button>
-            </Link>
-          </Card>
-        </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Dashboard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Please log in as admin to access this page.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="bg-gray-50 min-h-screen py-12">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="p-8 text-center">
-            <h1 className="text-3xl mb-2">Admin Access Required</h1>
-            <p className="text-gray-600">Your account does not have admin privileges.</p>
-          </Card>
-        </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Dashboard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>You are logged in, but your account does not have admin access.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  const pendingOrders = orders.filter((order) => order.status === "PENDING").length;
-
   return (
     <div className="bg-gray-50 min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div>
-          <h1 className="text-3xl">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage products, categorized orders, and print costing.</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl">Admin Dashboard</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage STL orders, shop orders, and products.</p>
+          </div>
+          <Button onClick={loadData} disabled={loadingOrders}>
+            {loadingOrders ? "Loading..." : "Refresh Orders"}
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="text-sm text-gray-500">Products</div>
-            <div className="text-3xl font-semibold">{products.length}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-500">Orders</div>
-            <div className="text-3xl font-semibold">{orders.length}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-500">Pending Orders</div>
-            <div className="text-3xl font-semibold">{pendingOrders}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-500">STL Review Orders</div>
-            <div className="text-3xl font-semibold">{groupedOrders.stlReview.length}</div>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          <Card className="p-6">
-            <h2 className="text-xl mb-4">Product Management</h2>
-            <form className="space-y-3" onSubmit={handleProductSubmit}>
-              <Input
+        <Card>
+          <CardHeader>
+            <CardTitle>STL Cost Calculator</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onCalculate} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <input
+                type="number"
+                min={1}
+                className="w-full border rounded-md px-3 py-2"
+                value={calculator.fileSizeBytes}
+                onChange={(event) => setCalculator((prev) => ({ ...prev, fileSizeBytes: event.target.value }))}
+                placeholder="File size (bytes)"
                 required
-                value={form.name}
-                placeholder="Product name"
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
               />
-              <textarea
-                className="w-full border rounded-md px-3 py-2 min-h-24"
-                placeholder="Product description"
-                value={form.description ?? ""}
-                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+              <select
+                className="w-full border rounded-md px-3 py-2"
+                value={calculator.material}
+                onChange={(event) => setCalculator((prev) => ({ ...prev, material: event.target.value }))}
+              >
+                {STL_MATERIALS.map((material) => (
+                  <option key={material} value={material}>
+                    {material}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1}
+                className="w-full border rounded-md px-3 py-2"
+                value={calculator.quantity}
+                onChange={(event) => setCalculator((prev) => ({ ...prev, quantity: event.target.value }))}
+                placeholder="Quantity"
+                required
               />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  required
-                  placeholder="Price"
-                  value={form.price}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, price: Number(event.target.value || 0) }))
-                  }
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  required
-                  placeholder="Stock"
-                  value={form.stock}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, stock: Number(event.target.value || 0) }))
-                  }
-                />
-                <Input
-                  placeholder="Image path"
-                  value={form.imagePath ?? ""}
-                  onChange={(event) => setForm((prev) => ({ ...prev, imagePath: event.target.value }))}
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <Button type="submit" disabled={savingProduct}>
-                  {savingProduct ? "Saving..." : editingProductId ? "Update Product" : "Add Product"}
-                </Button>
-                {editingProductId && (
-                  <Button type="button" variant="outline" onClick={resetProductForm}>
-                    Cancel Edit
-                  </Button>
-                )}
-              </div>
+              <Button type="submit">Calculate</Button>
             </form>
+            {estimatedPrice !== null && (
+              <p className="mt-4 text-lg">Estimated Price: <span className="font-semibold">${estimatedPrice.toFixed(2)}</span></p>
+            )}
+          </CardContent>
+        </Card>
 
-            <div className="mt-6 max-h-80 overflow-auto border rounded-md">
-              {products.map((product) => (
-                <div key={product.id} className="p-3 border-b last:border-b-0 flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium">{product.name}</div>
-                    <div className="text-sm text-gray-600">
-                      LKR {Number(product.price).toFixed(2)} • Stock: {product.stock}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>STL Orders ({stlOrders.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 max-h-[550px] overflow-auto">
+              {stlOrders.length === 0 && <p className="text-gray-600">No STL orders yet.</p>}
+              {stlOrders.map((order) => (
+                <div key={order.id} className="border rounded-md p-3 space-y-2 bg-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">Order #{order.id} · {order.material} · x{order.quantity}</p>
+                      <p className="text-sm text-gray-600">{order.customerName || "Unknown"} ({order.customerEmail || "no-email"})</p>
+                      <p className="text-sm text-gray-600">File: {order.fileName}</p>
                     </div>
+                    <p className="font-semibold">${Number(order.estimatedPrice).toFixed(2)}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => handleEditProduct(product)}>
-                      Edit
-                    </Button>
-                    <Button type="button" variant="destructive" onClick={() => handleDeleteProduct(product.id)}>
-                      Remove
-                    </Button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="border rounded-md px-2 py-1 text-sm"
+                      value={order.status}
+                      onChange={(event) => onStlStatusChange(order.id, event.target.value)}
+                    >
+                      {STL_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-xs text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ""}</span>
                   </div>
                 </div>
               ))}
-              {!loading && products.length === 0 && <div className="p-4 text-sm text-gray-600">No products found.</div>}
-            </div>
+            </CardContent>
           </Card>
 
-          <OrderList
-            title="Shop Orders"
-            orders={groupedOrders.shop}
-            onStatusChange={updateOrderStatus}
-            onTypeChange={updateOrderType}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Shop Orders ({shopOrders.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 max-h-[550px] overflow-auto">
+              {shopOrders.length === 0 && <p className="text-gray-600">No shop orders yet.</p>}
+              {shopOrders.map((order) => (
+                <div key={order.id} className="border rounded-md p-3 space-y-2 bg-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">Order #{order.id} · {order.category || "SHOP"}</p>
+                      <p className="text-sm text-gray-600">{order.user?.fullName || order.user?.email || "Unknown user"}</p>
+                      <p className="text-sm text-gray-600">{order.shippingAddress || "No shipping address"}</p>
+                    </div>
+                    <p className="font-semibold">${Number(order.totalAmount || 0).toFixed(2)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="border rounded-md px-2 py-1 text-sm"
+                      value={order.status}
+                      onChange={(event) => onShopStatusChange(order.id, event.target.value)}
+                    >
+                      {SHOP_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-xs text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ""}</span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
 
-        <OrderList
-          title="STL File Review Orders"
-          orders={groupedOrders.stlReview}
-          onStatusChange={updateOrderStatus}
-          onTypeChange={updateOrderType}
-        />
-
-        <Card className="p-6">
-          <h2 className="text-xl mb-2">Cost Calculator (PDF Method)</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Selling Price = (Material Cost + Machine Cost + Energy Cost + Labor Cost + Support Cost) × Markup
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-            <Input
-              type="number"
-              min={0}
-              step="1"
-              placeholder="Print hours"
-              value={costInputs.printHours}
-              onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, printHours: Number(event.target.value || 0) }))
-              }
-            />
-            <Input
-              type="number"
-              min={0}
-              max={59}
-              step="1"
-              placeholder="Print minutes"
-              value={costInputs.printMinutes}
-              onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, printMinutes: Number(event.target.value || 0) }))
-              }
-            />
-            <Input
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="Weight (grams)"
-              value={costInputs.weightGrams}
-              onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, weightGrams: Number(event.target.value || 0) }))
-              }
-            />
-
-            <select
-              className="border rounded-md px-3 py-2"
-              value={costInputs.materialType}
-              onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, materialType: event.target.value as CostInputs["materialType"] }))
-              }
-            >
-              <option value="PLA">PLA (LKR 5/g)</option>
-              <option value="PLA+">PLA+ (LKR 5/g)</option>
-              <option value="ABS">ABS (LKR 6/g)</option>
-              <option value="ABS+">ABS+ (LKR 6/g)</option>
-            </select>
-
-            <label className="flex items-center gap-2 border rounded-md px-3 py-2 text-sm">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Product</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onCreateProduct} className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input
-                type="checkbox"
-                checked={costInputs.supportStructures}
-                onChange={(event) =>
-                  setCostInputs((prev) => ({ ...prev, supportStructures: event.target.checked }))
-                }
+                type="text"
+                className="w-full border rounded-md px-3 py-2"
+                value={productForm.name}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="Product name"
+                required
               />
-              Add support structure cost (LKR 100)
-            </label>
-
-            <Input
-              type="number"
-              min={0}
-              step="0.1"
-              placeholder="Markup multiplier"
-              value={costInputs.markupMultiplier}
-              onChange={(event) =>
-                setCostInputs((prev) => ({ ...prev, markupMultiplier: Number(event.target.value || 1) }))
-              }
-            />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-7 gap-3 text-sm">
-            <div className="border rounded-md p-3">
-              <div className="text-gray-500">Material Cost</div>
-              <div className="font-semibold">LKR {costSummary.materialCost.toFixed(2)}</div>
-            </div>
-            <div className="border rounded-md p-3">
-              <div className="text-gray-500">Machine Cost</div>
-              <div className="font-semibold">LKR {costSummary.machineCost.toFixed(2)}</div>
-            </div>
-            <div className="border rounded-md p-3">
-              <div className="text-gray-500">Energy Cost</div>
-              <div className="font-semibold">LKR {costSummary.energyCost.toFixed(2)}</div>
-            </div>
-            <div className="border rounded-md p-3">
-              <div className="text-gray-500">Labor Cost</div>
-              <div className="font-semibold">LKR {costSummary.laborCost.toFixed(2)}</div>
-            </div>
-            <div className="border rounded-md p-3">
-              <div className="text-gray-500">Support Cost</div>
-              <div className="font-semibold">LKR {costSummary.supportCost.toFixed(2)}</div>
-            </div>
-            <div className="border rounded-md p-3">
-              <div className="text-gray-500">Total Cost</div>
-              <div className="font-semibold">LKR {costSummary.totalCost.toFixed(2)}</div>
-            </div>
-            <div className="border rounded-md p-3 bg-blue-50">
-              <div className="text-gray-500">Recommended Price</div>
-              <div className="font-semibold">LKR {costSummary.sellingPrice.toFixed(2)}</div>
-            </div>
-          </div>
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                className="w-full border rounded-md px-3 py-2"
+                value={productForm.price}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, price: event.target.value }))}
+                placeholder="Price"
+                required
+              />
+              <input
+                type="number"
+                min={0}
+                className="w-full border rounded-md px-3 py-2"
+                value={productForm.stock}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, stock: event.target.value }))}
+                placeholder="Stock"
+                required
+              />
+              <input
+                type="text"
+                className="w-full border rounded-md px-3 py-2"
+                value={productForm.imagePath}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, imagePath: event.target.value }))}
+                placeholder="Image URL (optional)"
+              />
+              <textarea
+                className="md:col-span-2 w-full border rounded-md px-3 py-2 min-h-[120px]"
+                value={productForm.description}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, description: event.target.value }))}
+                placeholder="Description"
+                required
+              />
+              <div className="md:col-span-2">
+                <Button type="submit">Create Product</Button>
+              </div>
+            </form>
+          </CardContent>
         </Card>
       </div>
     </div>

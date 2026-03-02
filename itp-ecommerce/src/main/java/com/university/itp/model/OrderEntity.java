@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -15,33 +16,35 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class OrderEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    @ManyToOne(optional = false)
-    private User user;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    private BigDecimal totalAmount;
+	@ManyToOne(optional = false)
+	private User user;
 
-    private String status; // PENDING, PROCESSING, SHIPPED
+	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+	@Builder.Default
+	private List<OrderItem> items = new ArrayList<>();
 
-    private String orderType; // SHOP, STL_REVIEW
+	private BigDecimal totalAmount;
 
-    private String stlFilePath;
+	@Enumerated(EnumType.STRING)
+	private OrderCategory category;
 
-    private String shippingAddress;
+	private String status;
 
-    private Instant createdAt;
+	@Column(columnDefinition = "TEXT")
+	private String shippingAddress;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "order")
-    private List<OrderItem> items;
+	private Instant createdAt;
 
-    @PrePersist
-    public void prePersist(){
-        this.createdAt = Instant.now();
-        if (this.orderType == null || this.orderType.isBlank()) {
-            this.orderType = "SHOP";
-        }
-    }
+	@PrePersist
+	public void prePersist() {
+		this.createdAt = Instant.now();
+		if (this.category == null) {
+			this.category = OrderCategory.SHOP;
+		}
+	}
 }

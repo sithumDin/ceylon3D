@@ -3,15 +3,22 @@ import { Search, ShoppingCart, User, Menu, Package } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useCart } from "../contexts/CartContext";
-import { useAuth } from "../contexts/AuthContext";
 import { Badge } from "./ui/badge";
 import { useState } from "react";
 
 export function Layout() {
   const { totalItems } = useCart();
-  const { isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const authUserRaw = localStorage.getItem("authUser");
+  let isAdmin = false;
+  if (authUserRaw) {
+    try {
+      isAdmin = Boolean(JSON.parse(authUserRaw)?.roles?.includes("ROLE_ADMIN"));
+    } catch {
+      isAdmin = false;
+    }
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,28 +58,16 @@ export function Layout() {
 
             {/* Actions */}
             <div className="flex items-center gap-4">
-              {isAdmin && (
-                <Link to="/admin">
-                  <Button variant="outline" size="sm">Admin</Button>
-                </Link>
-              )}
-
-              {!isAuthenticated && (
-                <Link to="/auth">
-                  <Button variant="outline" size="sm">Sign In</Button>
-                </Link>
-              )}
-
               <Link to="/account">
                 <Button variant="ghost" size="icon">
                   <User className="size-5" />
                 </Button>
               </Link>
-
-              {isAuthenticated && (
-                <Button variant="ghost" size="sm" onClick={logout}>Logout</Button>
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="ghost" size="sm">Admin</Button>
+                </Link>
               )}
-
               <Link to="/cart" className="relative">
                 <Button variant="ghost" size="icon">
                   <ShoppingCart className="size-5" />
