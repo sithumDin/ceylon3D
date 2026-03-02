@@ -1,6 +1,6 @@
 
   {
-      "name": "3D Printing Service Homepage",
+      "name": "ceylon3d-frontend",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
