@@ -3,9 +3,32 @@ import { useCart } from "../contexts/CartContext";
 import { Button } from "../components/ui/button";
 import { Separator } from "../components/ui/separator";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { toast } from "sonner";
 
 export function Cart() {
-  const { items, removeFromCart, updateQuantity, totalPrice } = useCart();
+  const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [deliveryInfo, setDeliveryInfo] = useState({
+    fullName: "",
+    phone: "",
+    deliveryAddress: "",
+    city: "",
+  });
+
+  const handlePlaceOrder = (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!deliveryInfo.fullName || !deliveryInfo.phone || !deliveryInfo.deliveryAddress || !deliveryInfo.city) {
+      toast.error("Please fill all delivery details");
+      return;
+    }
+
+    clearCart();
+    setShowCheckout(false);
+    setDeliveryInfo({ fullName: "", phone: "", deliveryAddress: "", city: "" });
+    toast.success("Order placed with Cash on Delivery");
+  };
 
   if (items.length === 0) {
     return (
@@ -108,7 +131,7 @@ export function Cart() {
                 <span className="font-semibold">Total</span>
                 <span className="font-semibold">${(totalPrice * 1.08).toFixed(2)}</span>
               </div>
-              <Button className="w-full mb-3" size="lg">
+              <Button className="w-full mb-3" size="lg" onClick={() => setShowCheckout(true)}>
                 Proceed to Checkout
               </Button>
               <Link to="/browse">
@@ -116,6 +139,50 @@ export function Cart() {
                   Continue Shopping
                 </Button>
               </Link>
+
+              {showCheckout && (
+                <form onSubmit={handlePlaceOrder} className="mt-6 space-y-3 border rounded-lg p-4">
+                  <h3 className="font-semibold">Delivery Information</h3>
+                  <input
+                    type="text"
+                    className="w-full border rounded-md px-3 py-2"
+                    placeholder="Full Name"
+                    value={deliveryInfo.fullName}
+                    onChange={(event) => setDeliveryInfo((prev) => ({ ...prev, fullName: event.target.value }))}
+                    required
+                  />
+                  <input
+                    type="tel"
+                    className="w-full border rounded-md px-3 py-2"
+                    placeholder="Phone Number"
+                    value={deliveryInfo.phone}
+                    onChange={(event) => setDeliveryInfo((prev) => ({ ...prev, phone: event.target.value }))}
+                    required
+                  />
+                  <textarea
+                    className="w-full border rounded-md px-3 py-2 min-h-[90px]"
+                    placeholder="Delivery Address"
+                    value={deliveryInfo.deliveryAddress}
+                    onChange={(event) => setDeliveryInfo((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
+                    required
+                  />
+                  <input
+                    type="text"
+                    className="w-full border rounded-md px-3 py-2"
+                    placeholder="City"
+                    value={deliveryInfo.city}
+                    onChange={(event) => setDeliveryInfo((prev) => ({ ...prev, city: event.target.value }))}
+                    required
+                  />
+
+                  <div className="rounded-md border bg-gray-50 p-3">
+                    <p className="text-sm font-medium">Payment Method</p>
+                    <p className="text-sm text-gray-600">Cash on Delivery (COD) only</p>
+                  </div>
+
+                  <Button type="submit" className="w-full">Place Order (COD)</Button>
+                </form>
+              )}
 
               <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm">
                 <p className="text-blue-900">
