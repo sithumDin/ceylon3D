@@ -1,7 +1,7 @@
 package com.university.itp.controller;
 
 import com.university.itp.model.Product;
-import com.university.itp.repository.ProductRepository;
+import com.university.itp.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,46 +15,33 @@ import java.util.List;
 public class ProductController {
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductService productService;
 
     @GetMapping
-    public List<Product> list(){
-        return productRepository.findAll();
+    public List<Product> list() {
+        return productService.listAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> get(@PathVariable Long id){
-        return productRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Product> get(@PathVariable Long id) {
+        return productService.getById(id);
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PostMapping
-    public Product create(@Valid @RequestBody Product product){
-        return productRepository.save(product);
+    public Product create(@Valid @RequestBody Product product) {
+        return productService.create(product);
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product body){
-        return productRepository.findById(id).map(p -> {
-            p.setName(body.getName());
-            p.setDescription(body.getDescription());
-            p.setPrice(body.getPrice());
-            p.setStock(body.getStock());
-            p.setImagePath(body.getImagePath());
-            productRepository.save(p);
-            return ResponseEntity.ok(p);
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product body) {
+        return productService.update(id, body);
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id){
-        return productRepository.findById(id).map(p -> {
-            productRepository.delete(p);
-            return ResponseEntity.ok().build();
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        return productService.delete(id);
     }
 }
