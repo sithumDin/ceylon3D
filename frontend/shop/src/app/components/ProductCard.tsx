@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <span className="text-sm">{product.rating}</span>
             <span className="text-sm text-gray-500">({product.reviews})</span>
           </div>
-          <p className="text-xl font-semibold mb-2">${product.price.toFixed(2)}</p>
+          <p className="text-xl font-semibold mb-2">LKR {product.price.toFixed(2)}</p>
           {product.shipping === "Free shipping" && (
             <div className="flex items-center gap-1 text-green-600 text-sm">
               <TruckIcon className="size-4" />

@@ -1,10 +1,12 @@
 package com.university.itp.controller;
 
+import com.university.itp.dto.PlaceOrderRequest;
 import com.university.itp.model.*;
-import com.university.itp.repository.CartItemRepository;
 import com.university.itp.repository.OrderRepository;
+import com.university.itp.repository.ProductRepository;
 import com.university.itp.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,17 +25,19 @@ public class OrderController {
     private UserRepository userRepository;
 
     @Autowired
-    private CartItemRepository cartItemRepository;
+    private ProductRepository productRepository;
 
     @Autowired
     private OrderRepository orderRepository;
 
     @PostMapping
     @Transactional
-    public ResponseEntity<?> placeOrder(Authentication auth, @RequestBody OrderEntity req){
+    public ResponseEntity<?> placeOrder(Authentication auth, @Valid @RequestBody PlaceOrderRequest req){
         User user = userRepository.findByEmail(auth.getName()).orElseThrow();
-        List<CartItem> cart = cartItemRepository.findByUser(user);
-        if(cart.isEmpty()) return ResponseEntity.badRequest().body("Cart is empty");
+
+        if (req.getItems() == null || req.getItems().isEmpty()) {
+            return ResponseEntity.badRequest().body("Cart is empty");
+        }
 
         OrderEntity order = new OrderEntity();
         order.setUser(user);
@@ -41,21 +45,26 @@ public class OrderController {
         order.setStatus("PENDING");
         order.setShippingAddress(req.getShippingAddress());
 
-        List<OrderItem> items = cart.stream().map(ci -> {
+        List<OrderItem> items = req.getItems().stream().map(dto -> {
             OrderItem oi = new OrderItem();
-            oi.setProduct(ci.getProduct());
-            oi.setQuantity(ci.getQuantity());
-            oi.setUnitPrice(ci.getProduct().getPrice());
+            oi.setProductName(dto.getProductName());
+            oi.setQuantity(dto.getQuantity());
+            oi.setUnitPrice(dto.getUnitPrice());
             oi.setOrder(order);
+            // Link to a real product if an ID was provided
+            if (dto.getProductId() != null) {
+                productRepository.findById(dto.getProductId()).ifPresent(oi::setProduct);
+            }
             return oi;
         }).collect(Collectors.toList());
 
         order.setItems(items);
-        BigDecimal total = items.stream().map(i -> i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity()))).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = items.stream()
+            .map(i -> i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
         order.setTotalAmount(total);
 
         OrderEntity saved = orderRepository.save(order);
-        cartItemRepository.deleteAll(cart);
         return ResponseEntity.ok(saved);
     }
 

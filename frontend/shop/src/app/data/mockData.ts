@@ -84,7 +84,7 @@ export const products: Product[] = [
   {
     id: "1",
     title: "Dragon Miniature - High Detail Resin Print",
-    price: 24.99,
+    price: 7500.00,
     image: "https://images.unsplash.com/photo-1679453081927-394ff1910032?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHwzZCUyMHByaW50ZWQlMjBkcmFnb24lMjBtaW5pYXR1cmV8ZW58MXx8fHwxNzcyMDM0NDQ5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "miniatures",
     seller: "GameMinis",
@@ -106,7 +106,7 @@ export const products: Product[] = [
   {
     id: "2",
     title: "Custom Phone Stand - Geometric Design",
-    price: 12.99,
+    price: 3900.00,
     image: "https://images.unsplash.com/photo-1584658645175-90788b3347b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBwaG9uZSUyMHN0YW5kJTIwZ2VvbWV0cmljfGVufDF8fHx8MTc3MjAzNDQ0OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "accessories",
     seller: "PrintMaster3D",
@@ -128,7 +128,7 @@ export const products: Product[] = [
   {
     id: "3",
     title: "Architectural Model Building Set",
-    price: 89.99,
+    price: 27000.00,
     image: "https://images.unsplash.com/photo-1771189255021-7bd328fc57ce?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcmNoaXRlY3R1cmFsJTIwbW9kZWwlMjBidWlsZGluZ3xlbnwxfHx8fDE3NzIwMzQ0NTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "prototypes",
     seller: "TechPrototypes",
@@ -150,7 +150,7 @@ export const products: Product[] = [
   {
     id: "4",
     title: "Succulent Planter - Geometric",
-    price: 16.50,
+    price: 4950.00,
     image: "https://images.unsplash.com/photo-1759050526841-37d7277c65d1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW9tZXRyaWMlMjBzdWNjdWxlbnQlMjBwbGFudGVyfGVufDF8fHx8MTc3MjAzNDQ1MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "art",
     seller: "ArtisanPrints",
@@ -172,7 +172,7 @@ export const products: Product[] = [
   {
     id: "5",
     title: "Replacement Gear for Coffee Grinder",
-    price: 8.99,
+    price: 2700.00,
     image: "https://images.unsplash.com/photo-1767739791246-9f832345f8f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWNoYW5pY2FsJTIwZ2VhciUyMHBhcnRzfGVufDF8fHx8MTc3MjAzNDQ1MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "functional",
     seller: "TechPrototypes",
@@ -193,7 +193,7 @@ export const products: Product[] = [
   {
     id: "6",
     title: "Custom D&D Character Miniature",
-    price: 34.99,
+    price: 10500.00,
     image: "https://images.unsplash.com/photo-1764512179305-8dd62b16046e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0YWJsZXRvcCUyMG1pbmlhdHVyZSUyMGZpZ3VyZXxlbnwxfHx8fDE3NzIwMzQ0NTF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "miniatures",
     seller: "GameMinis",
@@ -215,7 +215,7 @@ export const products: Product[] = [
   {
     id: "7",
     title: "Fidget Cube Pro",
-    price: 14.99,
+    price: 4500.00,
     image: "https://images.unsplash.com/photo-1727026115241-b9db0d4284d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2xvcmZ1bCUyMGZpZGdldCUyMGN1YmV8ZW58MXx8fHwxNzcyMDM0NDUxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "toys",
     seller: "PrintMaster3D",
@@ -236,7 +236,7 @@ export const products: Product[] = [
   {
     id: "8",
     title: "Modern Wall Art - Abstract Waves",
-    price: 45.00,
+    price: 13500.00,
     image: "https://images.unsplash.com/photo-1676676701371-dfc95d744f51?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHdhbGwlMjBhcnQlMjB3YXZlc3xlbnwxfHx8fDE3NzIwMzQ0NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "art",
     seller: "ArtisanPrints",
@@ -257,7 +257,7 @@ export const products: Product[] = [
   {
     id: "9",
     title: "Mechanical Keyboard Keycaps Set",
-    price: 29.99,
+    price: 9000.00,
     image: "https://images.unsplash.com/photo-1614921071926-a7e6581490f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWNoYW5pY2FsJTIwa2V5Ym9hcmQlMjBrZXljYXBzfGVufDF8fHx8MTc3MjAzNDQ1Mnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "accessories",
     seller: "TechPrototypes",
@@ -278,7 +278,7 @@ export const products: Product[] = [
   {
     id: "10",
     title: "Pendant Necklace - Geometric Crystal",
-    price: 22.50,
+    price: 6750.00,
     image: "https://images.unsplash.com/photo-1767210557310-db193f9e3a81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW9tZXRyaWMlMjBjcnlzdGFsJTIwcGVuZGFudHxlbnwxfHx8fDE3NzIwMzQ0NTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "jewelry",
     seller: "ArtisanPrints",
@@ -299,7 +299,7 @@ export const products: Product[] = [
   {
     id: "11",
     title: "Desk Organizer with Wireless Charger",
-    price: 38.99,
+    price: 11700.00,
     image: "https://images.unsplash.com/photo-1703589535872-93c3b0f96ba3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBkZXNrJTIwb3JnYW5pemVyfGVufDF8fHx8MTc3MjAzNDQ1M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "functional",
     seller: "PrintMaster3D",
@@ -320,7 +320,7 @@ export const products: Product[] = [
   {
     id: "12",
     title: "Chess Set - Modern Minimalist",
-    price: 65.00,
+    price: 19500.00,
     image: "https://images.unsplash.com/photo-1737474447205-9f904186583e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwY2hlc3MlMjBzZXR8ZW58MXx8fHwxNzcyMDM0NDUzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
     category: "toys",
     seller: "ArtisanPrints",

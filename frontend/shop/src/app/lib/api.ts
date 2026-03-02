@@ -13,6 +13,13 @@ export type AuthResponse = {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
+export type OrderItem = {
+	id: number;
+	productName?: string;
+	quantity: number;
+	unitPrice: number;
+};
+
 export type ShopOrder = {
 	id: number;
 	status: string;
@@ -20,6 +27,7 @@ export type ShopOrder = {
 	shippingAddress?: string;
 	createdAt?: string;
 	category?: "SHOP" | "STL";
+	items?: OrderItem[];
 	user?: {
 		id: number;
 		email: string;
@@ -125,22 +133,72 @@ export function updateAdminStlOrderStatus(orderId: number, status: string) {
 	});
 }
 
-export function calculateStlCost(fileSizeBytes: number, material: string, quantity: number) {
-	return authJson<{ estimatedPrice: number }>("/stl-orders/calculate-cost", {
+export function calculateStlCost(params: {
+	printTimeHours: number;
+	printTimeMinutes: number;
+	weightGrams: number;
+	material: string;
+	supportStructures: boolean;
+}) {
+	return authJson<{
+		material: string;
+		weightGrams: number;
+		printTimeHours: number;
+		printTimeMinutes: number;
+		supportStructures: boolean;
+		materialCost: number;
+		machineCost: number;
+		energyCost: number;
+		laborCost: number;
+		supportCost: number;
+		totalCost: number;
+		sellingPrice: number;
+	}>("/stl-orders/calculate-cost", {
 		method: "POST",
-		body: { fileSizeBytes, material, quantity },
+		body: params,
 	});
 }
 
-export function createProduct(payload: {
-	name: string;
-	description: string;
-	price: number;
-	stock: number;
-	imagePath?: string;
-}) {
-	return authJson("/products", {
+export function updateStlOrderPrice(orderId: number, estimatedPrice: number) {
+	return authJson<StlOrder>(`/stl-orders/admin/${orderId}/price`, {
+		method: "PUT",
+		body: { estimatedPrice },
+	});
+}
+
+export type PlaceOrderItem = {
+	productName: string;
+	quantity: number;
+	unitPrice: number;
+	productId?: number;
+};
+
+export function placeOrder(shippingAddress: string, items: PlaceOrderItem[]) {
+	return authJson<ShopOrder>("/orders", {
 		method: "POST",
-		body: payload,
+		body: { shippingAddress, items },
+	});
+}
+
+export function getMyOrders() {
+	return authJson<ShopOrder[]>("/orders");
+}
+
+export function createProduct(formData: FormData) {
+	const token = localStorage.getItem("token");
+	if (!token) throw new Error("Please log in first");
+
+	return fetch(`${API_BASE_URL}/products`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+		body: formData,
+	}).then(async (res) => {
+		if (!res.ok) {
+			const errorText = await res.text();
+			throw new Error(errorText || "Product creation failed");
+		}
+		return res.json();
 	});
 }

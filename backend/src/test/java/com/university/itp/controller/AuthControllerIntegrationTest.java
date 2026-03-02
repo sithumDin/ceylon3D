@@ -6,7 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,35 +32,31 @@ public class AuthControllerIntegrationTest {
     }
 
     @Test
-    void register_requires_mobile() {
+    void register_requires_email() {
         RegisterRequest req = new RegisterRequest();
-        req.setEmail("u1@example.com");
         req.setPassword("pass123");
         req.setFullName("User One");
-        // missing mobile
+        // missing email
 
         ResponseEntity<String> resp = restTemplate.postForEntity("/api/auth/register", new HttpEntity<>(req), String.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(resp.getBody()).contains("mobile");
     }
 
     @Test
-    void register_duplicate_mobile_fails(){
+    void register_duplicate_email_fails(){
         RegisterRequest r1 = new RegisterRequest();
         r1.setEmail("u2@example.com");
         r1.setPassword("pass123");
         r1.setFullName("User Two");
-        r1.setMobile("+12345678901");
         ResponseEntity<String> r1resp = restTemplate.postForEntity("/api/auth/register", new HttpEntity<>(r1), String.class);
         assertThat(r1resp.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         RegisterRequest r2 = new RegisterRequest();
-        r2.setEmail("u3@example.com");
+        r2.setEmail("u2@example.com");
         r2.setPassword("pass123");
         r2.setFullName("User Three");
-        r2.setMobile("+12345678901");
         ResponseEntity<String> r2resp = restTemplate.postForEntity("/api/auth/register", new HttpEntity<>(r2), String.class);
         assertThat(r2resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(r2resp.getBody()).contains("Mobile number already in use");
+        assertThat(r2resp.getBody()).contains("Email already in use");
     }
 }

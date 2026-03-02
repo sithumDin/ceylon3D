@@ -5,6 +5,7 @@ import { Separator } from "../components/ui/separator";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
+import { placeOrder } from "../lib/api";
 
 export function Cart() {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
@@ -16,7 +17,7 @@ export function Cart() {
     city: "",
   });
 
-  const handlePlaceOrder = (event: FormEvent) => {
+  const handlePlaceOrder = async (event: FormEvent) => {
     event.preventDefault();
 
     if (!deliveryInfo.fullName || !deliveryInfo.phone || !deliveryInfo.deliveryAddress || !deliveryInfo.city) {
@@ -24,10 +25,29 @@ export function Cart() {
       return;
     }
 
-    clearCart();
-    setShowCheckout(false);
-    setDeliveryInfo({ fullName: "", phone: "", deliveryAddress: "", city: "" });
-    toast.success("Order placed with Cash on Delivery");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please log in to place an order");
+      return;
+    }
+
+    try {
+      const shippingAddress = `${deliveryInfo.fullName}\n${deliveryInfo.phone}\n${deliveryInfo.deliveryAddress}\n${deliveryInfo.city}`;
+      const orderItems = items.map((item) => ({
+        productName: item.title,
+        quantity: item.quantity,
+        unitPrice: item.price,
+      }));
+
+      await placeOrder(shippingAddress, orderItems);
+      clearCart();
+      setShowCheckout(false);
+      setDeliveryInfo({ fullName: "", phone: "", deliveryAddress: "", city: "" });
+      toast.success("Order placed successfully!");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to place order";
+      toast.error(message);
+    }
   };
 
   if (items.length === 0) {
@@ -90,7 +110,7 @@ export function Cart() {
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="font-semibold text-lg">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          LKR {(item.price * item.quantity).toFixed(2)}
                         </span>
                         <Button
                           size="icon"
@@ -115,21 +135,17 @@ export function Cart() {
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${totalPrice.toFixed(2)}</span>
+                  <span>LKR {totalPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="text-green-600">FREE</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax (estimated)</span>
-                  <span>${(totalPrice * 0.08).toFixed(2)}</span>
-                </div>
               </div>
               <Separator className="my-4" />
               <div className="flex justify-between text-lg mb-6">
                 <span className="font-semibold">Total</span>
-                <span className="font-semibold">${(totalPrice * 1.08).toFixed(2)}</span>
+                <span className="font-semibold">LKR {totalPrice.toFixed(2)}</span>
               </div>
               <Button className="w-full mb-3" size="lg" onClick={() => setShowCheckout(true)}>
                 Proceed to Checkout

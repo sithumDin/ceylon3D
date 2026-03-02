@@ -1,11 +1,11 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Card } from "../components/ui/card";
-import { Package, Heart, Settings, CreditCard, MapPin, Bell, LogOut } from "lucide-react";
+import { Package, Heart, Settings, CreditCard, MapPin, Bell, LogOut, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
-import { login, register } from "../lib/api";
+import { login, register, getMyOrders, ShopOrder } from "../lib/api";
 
 export function MyAccount() {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ export function MyAccount() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [orders, setOrders] = useState<ShopOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   const user = useMemo(() => {
     const value = localStorage.getItem("authUser");
@@ -28,6 +30,25 @@ export function MyAccount() {
   }, []);
 
   const isLoggedIn = Boolean(localStorage.getItem("token"));
+
+  const loadOrders = async () => {
+    if (!localStorage.getItem("token")) return;
+    setOrdersLoading(true);
+    try {
+      const data = await getMyOrders();
+      setOrders(data);
+    } catch {
+      // silently fail – user may not be logged in
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadOrders();
+    }
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
     const authKeys = [
@@ -204,14 +225,67 @@ export function MyAccount() {
           </TabsList>
 
           <TabsContent value="orders" className="space-y-4">
-            <Card className="p-8 text-center">
-              <Package className="size-16 text-gray-300 mx-auto mb-4" />
-              <h2 className="text-xl mb-2">No orders yet</h2>
-              <p className="text-gray-600 mb-6">Start shopping to see your orders here</p>
-              <Link to="/browse">
-                <Button>Browse Products</Button>
-              </Link>
-            </Card>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">My Orders</h2>
+              <Button variant="outline" size="sm" onClick={loadOrders} disabled={ordersLoading}>
+                <RefreshCcw className={`size-4 mr-1 ${ordersLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+            {ordersLoading && orders.length === 0 && (
+              <Card className="p-8 text-center">
+                <p className="text-gray-600">Loading orders...</p>
+              </Card>
+            )}
+            {!ordersLoading && orders.length === 0 && (
+              <Card className="p-8 text-center">
+                <Package className="size-16 text-gray-300 mx-auto mb-4" />
+                <h2 className="text-xl mb-2">No orders yet</h2>
+                <p className="text-gray-600 mb-6">Start shopping to see your orders here</p>
+                <Link to="/browse">
+                  <Button>Browse Products</Button>
+                </Link>
+              </Card>
+            )}
+            {orders.map((order) => (
+              <Card key={order.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">Order #{order.id}</p>
+                    <p className="text-xs text-gray-500">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleString() : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">LKR {Number(order.totalAmount || 0).toFixed(2)}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      order.status === "PENDING" ? "bg-yellow-100 text-yellow-800" :
+                      order.status === "PROCESSING" ? "bg-blue-100 text-blue-800" :
+                      order.status === "SHIPPED" ? "bg-purple-100 text-purple-800" :
+                      order.status === "DELIVERED" ? "bg-green-100 text-green-800" :
+                      order.status === "CANCELLED" ? "bg-red-100 text-red-800" :
+                      "bg-gray-100 text-gray-800"
+                    }`}>{order.status}</span>
+                  </div>
+                </div>
+                {order.items && order.items.length > 0 && (
+                  <div className="border-t pt-2">
+                    {order.items.map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm py-1">
+                        <span className="text-gray-700">{item.productName || "Product"} × {item.quantity}</span>
+                        <span className="text-gray-600">LKR {Number(item.unitPrice).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {order.shippingAddress && (
+                  <div className="border-t pt-2">
+                    <p className="text-xs text-gray-500">Shipping to:</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">{order.shippingAddress}</p>
+                  </div>
+                )}
+              </Card>
+            ))}
           </TabsContent>
 
           <TabsContent value="wishlist" className="space-y-4">

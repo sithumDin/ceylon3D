@@ -7,6 +7,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  sql:
+    init:
+      mode: never
+
+jwt:
+  secret: test-secret-key-for-testing-purposes-only-32chars
+  expirationMs: 86400000
+
 logging:
   level:
     root: INFO

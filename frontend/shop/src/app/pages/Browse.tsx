@@ -20,7 +20,7 @@ export function Browse() {
   const categoryParam = searchParams.get("category");
   const queryParam = searchParams.get("q");
 
-  const [priceRange, setPriceRange] = useState([0, 100]);
+  const [priceRange, setPriceRange] = useState([0, 30000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     categoryParam ? [categoryParam] : []
   );
@@ -112,15 +112,15 @@ export function Browse() {
         <div className="px-2">
           <Slider
             min={0}
-            max={100}
-            step={5}
+            max={30000}
+            step={500}
             value={priceRange}
             onValueChange={setPriceRange}
             className="mb-2"
           />
           <div className="flex justify-between text-sm text-gray-600">
-            <span>${priceRange[0]}</span>
-            <span>${priceRange[1]}</span>
+            <span>LKR {priceRange[0]}</span>
+            <span>LKR {priceRange[1]}</span>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ export function Browse() {
         className="w-full"
         onClick={() => {
           setSelectedCategories([]);
-          setPriceRange([0, 100]);
+          setPriceRange([0, 30000]);
           setMinRating(0);
         }}
       >
@@ -231,7 +231,7 @@ export function Browse() {
                   variant="outline"
                   onClick={() => {
                     setSelectedCategories([]);
-                    setPriceRange([0, 100]);
+                    setPriceRange([0, 30000]);
                     setMinRating(0);
                   }}
                 >

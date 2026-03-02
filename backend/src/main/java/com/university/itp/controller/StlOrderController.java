@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +18,7 @@ import java.util.Set;
 @RequestMapping("/api/stl-orders")
 public class StlOrderController {
 
-    private static final Set<String> ALLOWED_MATERIALS = Set.of("PLA", "ABS", "PETG", "RESIN");
+    private static final Set<String> ALLOWED_MATERIALS = Set.of("PLA", "PLA+", "ABS", "ABS+");
 
     @Autowired
     private StlOrderRepository stlOrderRepository;
@@ -38,35 +39,85 @@ public class StlOrderController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /** Update the estimated price for an STL order (admin calculates and sets price) */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PutMapping("/admin/{id}/price")
+    public ResponseEntity<?> updatePrice(@PathVariable Long id, @RequestBody Map<String, Object> req) {
+        return stlOrderRepository.findById(id).map(order -> {
+            BigDecimal price = new BigDecimal(req.get("estimatedPrice").toString());
+            order.setEstimatedPrice(price);
+            // Auto-set status to QUOTED when price is calculated
+            if ("PENDING_QUOTE".equals(order.getStatus())) {
+                order.setStatus("QUOTED");
+            }
+            stlOrderRepository.save(order);
+            return ResponseEntity.ok(order);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Calculate 3D print cost based on the PDF formula:
+     * Selling Price = (Material Cost + Machine Cost + Energy Cost + Labor Cost + Support Cost) × 1.5
+     *
+     * Inputs: printTimeHours, printTimeMinutes, weightGrams, material, supportStructures
+     */
     @PostMapping("/calculate-cost")
     public ResponseEntity<Map<String, Object>> calculateCost(@RequestBody Map<String, Object> req) {
-        long fileSizeBytes = extractLong(req.get("fileSizeBytes"), 0L);
-        int quantity = (int) extractLong(req.get("quantity"), 1L);
+        int printTimeHours = (int) extractLong(req.get("printTimeHours"), 0L);
+        int printTimeMinutes = (int) extractLong(req.get("printTimeMinutes"), 0L);
+        double weightGrams = extractDouble(req.get("weightGrams"), 0.0);
         String material = normalizeMaterial((String) req.get("material"));
+        boolean supportStructures = Boolean.TRUE.equals(req.get("supportStructures"));
 
-        if (fileSizeBytes <= 0) {
-            return ResponseEntity.badRequest().body(Map.of("message", "fileSizeBytes must be greater than 0"));
+        if (weightGrams <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("message", "weightGrams must be greater than 0"));
         }
 
-        if (quantity < 1) {
-            quantity = 1;
-        }
+        double totalHours = printTimeHours + (printTimeMinutes / 60.0);
 
-        BigDecimal estimatedPrice = calculateEstimatedPrice(fileSizeBytes, material, quantity);
+        // Material Cost: PLA/PLA+ = LKR 5.00/g, ABS/ABS+ = LKR 6.00/g
+        double materialRate = (material.startsWith("ABS")) ? 6.00 : 5.00;
+        BigDecimal materialCost = BigDecimal.valueOf(weightGrams * materialRate);
 
-        return ResponseEntity.ok(Map.of(
-                "material", material,
-                "quantity", quantity,
-                "fileSizeBytes", fileSizeBytes,
-                "estimatedPrice", estimatedPrice
-        ));
+        // Machine Cost: LKR 50.00/hour
+        BigDecimal machineCost = BigDecimal.valueOf(totalHours * 50.00);
+
+        // Energy Cost: LKR 30.00/hour
+        BigDecimal energyCost = BigDecimal.valueOf(totalHours * 30.00);
+
+        // Labor Cost: LKR 100.00 flat
+        BigDecimal laborCost = BigDecimal.valueOf(100.00);
+
+        // Support Structure Cost: LKR 100.00 if enabled
+        BigDecimal supportCost = supportStructures ? BigDecimal.valueOf(100.00) : BigDecimal.ZERO;
+
+        // Total Cost
+        BigDecimal totalCost = materialCost.add(machineCost).add(energyCost).add(laborCost).add(supportCost);
+
+        // Selling Price = Total Cost × 1.5
+        BigDecimal sellingPrice = totalCost.multiply(BigDecimal.valueOf(1.5)).setScale(2, RoundingMode.HALF_UP);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("material", material);
+        result.put("weightGrams", weightGrams);
+        result.put("printTimeHours", printTimeHours);
+        result.put("printTimeMinutes", printTimeMinutes);
+        result.put("supportStructures", supportStructures);
+        result.put("materialCost", materialCost.setScale(2, RoundingMode.HALF_UP));
+        result.put("machineCost", machineCost.setScale(2, RoundingMode.HALF_UP));
+        result.put("energyCost", energyCost.setScale(2, RoundingMode.HALF_UP));
+        result.put("laborCost", laborCost.setScale(2, RoundingMode.HALF_UP));
+        result.put("supportCost", supportCost.setScale(2, RoundingMode.HALF_UP));
+        result.put("totalCost", totalCost.setScale(2, RoundingMode.HALF_UP));
+        result.put("sellingPrice", sellingPrice);
+
+        return ResponseEntity.ok(result);
     }
 
     private String normalizeMaterial(String material) {
         if (material == null || material.isBlank()) {
             return "PLA";
         }
-
         String normalized = material.trim().toUpperCase();
         return ALLOWED_MATERIALS.contains(normalized) ? normalized : "PLA";
     }
@@ -75,7 +126,6 @@ public class StlOrderController {
         if (value instanceof Number number) {
             return number.longValue();
         }
-
         if (value instanceof String text) {
             try {
                 return Long.parseLong(text.trim());
@@ -83,23 +133,20 @@ public class StlOrderController {
                 return fallback;
             }
         }
-
         return fallback;
     }
 
-    private BigDecimal calculateEstimatedPrice(long fileSizeBytes, String material, int quantity) {
-        BigDecimal baseCharge = BigDecimal.valueOf(8.00);
-        BigDecimal sizeInMb = BigDecimal.valueOf(fileSizeBytes)
-                .divide(BigDecimal.valueOf(1024 * 1024), 4, RoundingMode.HALF_UP);
-        BigDecimal sizeCost = sizeInMb.multiply(BigDecimal.valueOf(4.00));
-        BigDecimal materialMultiplier = switch (material) {
-            case "ABS" -> BigDecimal.valueOf(1.15);
-            case "PETG" -> BigDecimal.valueOf(1.30);
-            case "RESIN" -> BigDecimal.valueOf(1.60);
-            default -> BigDecimal.ONE;
-        };
-
-        BigDecimal unitPrice = baseCharge.add(sizeCost).multiply(materialMultiplier);
-        return unitPrice.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP);
+    private double extractDouble(Object value, double fallback) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Double.parseDouble(text.trim());
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 }

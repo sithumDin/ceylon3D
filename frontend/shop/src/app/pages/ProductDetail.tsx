@@ -107,7 +107,7 @@ export function ProductDetail() {
               <span className="text-gray-500">({product.reviews} reviews)</span>
             </div>
 
-            <div className="text-4xl mb-6">${product.price.toFixed(2)}</div>
+            <div className="text-4xl mb-6">LKR {product.price.toFixed(2)}</div>
 
             <div className="space-y-3 mb-6">
               {product.shipping === "Free shipping" && (

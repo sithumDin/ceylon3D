@@ -1,9 +1,11 @@
 # Node
-frontend/node_modules/
-frontend/dist/
+frontend/landing/node_modules/
+frontend/landing/dist/
+frontend/shop/node_modules/
+frontend/shop/dist/
 
 # Maven/Java
-itp-ecommerce/target/
+backend/target/
 
 # OS
 .DS_Store
