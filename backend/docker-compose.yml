@@ -3,10 +3,8 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: itpdb
-      MYSQL_USER: itp_user
-      MYSQL_PASSWORD: itp_pass
+      MYSQL_ROOT_PASSWORD: "1234567890"
+      MYSQL_DATABASE: ceylon3d
     ports:
       - "3306:3306"
     volumes:
@@ -19,10 +17,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/itpdb
-      - SPRING_DATASOURCE_USERNAME=itp_user
-      - SPRING_DATASOURCE_PASSWORD=itp_pass
-      - JWT_SECRET=change-me-super-secret
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/ceylon3d?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234567890
+      - JWT_SECRET=change-me-super-secret-change-me-super-secret
       - JWT_EXPIRATIONMS=86400000
     restart: unless-stopped
 
