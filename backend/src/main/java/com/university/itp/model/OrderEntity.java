@@ -38,6 +38,8 @@ public class OrderEntity {
 	@Column(columnDefinition = "TEXT")
 	private String shippingAddress;
 
+	private String trackingNumber;
+
 	private Instant createdAt;
 
 	@PrePersist

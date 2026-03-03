@@ -5,12 +5,15 @@ import {
   calculateStlCost,
   createProduct,
   deleteProduct,
+  deleteStlOrder,
+  downloadStlOrderFile,
   getAllProducts,
   getAdminShopOrders,
   getAdminStlOrders,
   updateAdminShopOrderStatus,
   updateAdminStlOrderStatus,
   updateProduct,
+  updateShopOrderTracking,
   updateStlOrderPrice,
 } from "../lib/api";
 import { toast } from "sonner";
@@ -122,6 +125,17 @@ export function AdminDashboard() {
     }
   };
 
+  const onTrackingUpdate = async (orderId, trackingNumber) => {
+    try {
+      await updateShopOrderTracking(orderId, trackingNumber);
+      toast.success("Tracking number updated");
+      await loadData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update tracking number";
+      toast.error(message);
+    }
+  };
+
   const onStlStatusChange = async (orderId, status) => {
     try {
       await updateAdminStlOrderStatus(orderId, status);
@@ -129,6 +143,27 @@ export function AdminDashboard() {
       await loadData();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Status update failed";
+      toast.error(message);
+    }
+  };
+
+  const onDeleteStlOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this STL order? This will also remove the uploaded file.")) return;
+    try {
+      await deleteStlOrder(orderId);
+      toast.success("STL order deleted");
+      await loadData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete STL order";
+      toast.error(message);
+    }
+  };
+
+  const onDownloadStlFile = async (orderId) => {
+    try {
+      await downloadStlOrderFile(orderId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "File download failed";
       toast.error(message);
     }
   };
@@ -186,10 +221,27 @@ export function AdminDashboard() {
   const onCreateProduct = async (event) => {
     event.preventDefault();
 
+    if (!productForm.name.trim()) {
+      toast.error("Product name is required");
+      return;
+    }
+    if (!productForm.price || isNaN(Number(productForm.price)) || Number(productForm.price) <= 0) {
+      toast.error("Price must be a valid positive number");
+      return;
+    }
+    if (!productForm.stock || isNaN(Number(productForm.stock)) || Number(productForm.stock) < 0 || !Number.isInteger(Number(productForm.stock))) {
+      toast.error("Stock must be a valid whole number (0 or more)");
+      return;
+    }
+    if (!productForm.description.trim()) {
+      toast.error("Product description is required");
+      return;
+    }
+
     try {
       const formData = new FormData();
-      formData.append("name", productForm.name);
-      formData.append("description", productForm.description);
+      formData.append("name", productForm.name.trim());
+      formData.append("description", productForm.description.trim());
       formData.append("price", productForm.price);
       formData.append("stock", productForm.stock);
       if (productImage) {
@@ -246,10 +298,27 @@ export function AdminDashboard() {
     event.preventDefault();
     if (!editingProduct) return;
 
+    if (!editForm.name.trim()) {
+      toast.error("Product name is required");
+      return;
+    }
+    if (!editForm.price || isNaN(Number(editForm.price)) || Number(editForm.price) <= 0) {
+      toast.error("Price must be a valid positive number");
+      return;
+    }
+    if (!editForm.stock || isNaN(Number(editForm.stock)) || Number(editForm.stock) < 0 || !Number.isInteger(Number(editForm.stock))) {
+      toast.error("Stock must be a valid whole number (0 or more)");
+      return;
+    }
+    if (!editForm.description.trim()) {
+      toast.error("Product description is required");
+      return;
+    }
+
     try {
       const formData = new FormData();
-      formData.append("name", editForm.name);
-      formData.append("description", editForm.description);
+      formData.append("name", editForm.name.trim());
+      formData.append("description", editForm.description.trim());
       formData.append("price", editForm.price);
       formData.append("stock", editForm.stock);
       if (editImage) {
@@ -425,8 +494,23 @@ export function AdminDashboard() {
                     <div>
                       <p className="font-medium">Order #{order.id} · {order.material} · x{order.quantity}</p>
                       <p className="text-sm text-gray-600">{order.customerName || "Unknown"} ({order.customerEmail || "no-email"})</p>
-                      <p className="text-sm text-gray-600">File: {order.fileName}</p>
+                      <p className="text-sm text-gray-600">
+                        File: {order.fileName}
+                        <button
+                          type="button"
+                          onClick={() => onDownloadStlFile(order.id)}
+                          className="ml-2 text-blue-600 hover:text-blue-800 underline text-xs"
+                        >
+                          ⬇ Download
+                        </button>
+                      </p>
                       {order.phone && <p className="text-sm text-gray-600">Phone: {order.phone}</p>}
+                      {order.note && (
+                        <div className="mt-1 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                          <p className="text-xs font-medium text-amber-700">Customer Note:</p>
+                          <p className="text-sm text-amber-900 whitespace-pre-line">{order.note}</p>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">LKR {Number(order.estimatedPrice).toFixed(2)}</p>
@@ -466,6 +550,13 @@ export function AdminDashboard() {
                       }}
                     >
                       Calculate Price
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onDeleteStlOrder(order.id)}
+                    >
+                      Delete
                     </Button>
                     <span className="text-xs text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ""}</span>
                   </div>
@@ -511,7 +602,7 @@ export function AdminDashboard() {
                       ))}
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <select
                       className="border rounded-md px-2 py-1 text-sm"
                       value={order.status}
@@ -524,6 +615,29 @@ export function AdminDashboard() {
                       ))}
                     </select>
                     <span className="text-xs text-gray-500">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ""}</span>
+                  </div>
+                  <div className="flex items-center gap-2 border-t pt-2 mt-1">
+                    <input
+                      type="text"
+                      className="border rounded-md px-2 py-1 text-sm flex-1"
+                      placeholder="Enter tracking number"
+                      defaultValue={order.trackingNumber || ""}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          onTrackingUpdate(order.id, e.target.value.trim());
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        const input = e.target.closest(".flex").querySelector("input");
+                        onTrackingUpdate(order.id, input.value.trim());
+                      }}
+                    >
+                      Set Tracking
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -548,19 +662,36 @@ export function AdminDashboard() {
               <input
                 type="number"
                 step="0.01"
-                min={0}
+                min={0.01}
                 className="w-full border rounded-md px-3 py-2"
                 value={productForm.price}
-                onChange={(event) => setProductForm((prev) => ({ ...prev, price: event.target.value }))}
+                onChange={(event) => {
+                  const val = event.target.value;
+                  if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                    setProductForm((prev) => ({ ...prev, price: val }));
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+                }}
                 placeholder="Price (LKR)"
                 required
               />
               <input
                 type="number"
                 min={0}
+                step={1}
                 className="w-full border rounded-md px-3 py-2"
                 value={productForm.stock}
-                onChange={(event) => setProductForm((prev) => ({ ...prev, stock: event.target.value }))}
+                onChange={(event) => {
+                  const val = event.target.value;
+                  if (val === "" || /^\d+$/.test(val)) {
+                    setProductForm((prev) => ({ ...prev, stock: val }));
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault();
+                }}
                 placeholder="Stock"
                 required
               />
@@ -673,10 +804,18 @@ export function AdminDashboard() {
                     <input
                       type="number"
                       step="0.01"
-                      min={0}
+                      min={0.01}
                       className="w-full border rounded-md px-3 py-2"
                       value={editForm.price}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, price: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                          setEditForm((prev) => ({ ...prev, price: val }));
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+                      }}
                       required
                     />
                   </div>
@@ -685,9 +824,18 @@ export function AdminDashboard() {
                     <input
                       type="number"
                       min={0}
+                      step={1}
                       className="w-full border rounded-md px-3 py-2"
                       value={editForm.stock}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, stock: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "" || /^\d+$/.test(val)) {
+                          setEditForm((prev) => ({ ...prev, stock: val }));
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (["e", "E", "+", "-", "."].includes(e.key)) e.preventDefault();
+                      }}
                       required
                     />
                   </div>

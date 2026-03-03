@@ -89,4 +89,14 @@ public class OrderController {
             return ResponseEntity.ok(o);
         }).orElse(ResponseEntity.notFound().build());
     }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PutMapping("/admin/{id}/tracking")
+    public ResponseEntity<?> updateTrackingNumber(@PathVariable Long id, @RequestBody java.util.Map<String, String> req) {
+        return orderRepository.findById(id).map(o -> {
+            o.setTrackingNumber(req.get("trackingNumber"));
+            orderRepository.save(o);
+            return ResponseEntity.ok(o);
+        }).orElse(ResponseEntity.notFound().build());
+    }
 }

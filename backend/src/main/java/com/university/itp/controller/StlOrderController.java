@@ -7,8 +7,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +61,57 @@ public class StlOrderController {
             stlOrderRepository.save(order);
             return ResponseEntity.ok(order);
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Delete an STL order */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @DeleteMapping("/admin/{id}")
+    public ResponseEntity<?> deleteStlOrder(@PathVariable Long id) {
+        return stlOrderRepository.findById(id).map(order -> {
+            // Try to delete the uploaded file
+            try {
+                Path uploadDir = Path.of(System.getProperty("java.io.tmpdir"), "ceylon3d-uploads");
+                Path filePath = uploadDir.resolve(order.getFileName());
+                Files.deleteIfExists(filePath);
+            } catch (Exception ignored) {
+                // File may already be deleted; continue with DB removal
+            }
+            stlOrderRepository.delete(order);
+            return ResponseEntity.ok(Map.of("message", "STL order deleted"));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Download the uploaded file for an STL order */
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/admin/{id}/download")
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long id) {
+        var optionalOrder = stlOrderRepository.findById(id);
+        if (optionalOrder.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        StlOrder order = optionalOrder.get();
+        try {
+            Path uploadDir = Path.of(System.getProperty("java.io.tmpdir"), "ceylon3d-uploads");
+            Path filePath = uploadDir.resolve(order.getFileName());
+            if (!Files.exists(filePath)) {
+                return ResponseEntity.notFound().build();
+            }
+            Resource resource = new UrlResource(filePath.toUri());
+
+            // Extract original filename (strip UUID prefix)
+            String originalName = order.getFileName();
+            int dashIndex = originalName.indexOf('-');
+            if (dashIndex > 0 && dashIndex < originalName.length() - 1) {
+                originalName = originalName.substring(dashIndex + 1);
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + originalName + "\"")
+                    .body(resource);
+        } catch (MalformedURLException e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     /**

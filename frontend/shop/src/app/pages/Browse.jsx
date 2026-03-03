@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { ProductCard } from "../components/ProductCard";
-import { products, categories } from "../data/mockData";
+import { categories } from "../data/mockData";
+import { getAllProducts } from "../lib/api";
 import { Button } from "../components/ui/button";
 import { Slider } from "../components/ui/slider";
 import { Label } from "../components/ui/label";
@@ -20,12 +21,21 @@ export function Browse() {
   const categoryParam = searchParams.get("category");
   const queryParam = searchParams.get("q");
 
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [priceRange, setPriceRange] = useState([0, 30000]);
   const [selectedCategories, setSelectedCategories] = useState(
     categoryParam ? [categoryParam] : []
   );
-  const [minRating, setMinRating] = useState(0);
-  const [sortBy, setSortBy] = useState("featured");
+  const [sortBy, setSortBy] = useState("newest");
+
+  useEffect(() => {
+    setLoading(true);
+    getAllProducts()
+      .then((data) => setProducts(data))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
@@ -35,47 +45,31 @@ export function Browse() {
       const query = queryParam.toLowerCase();
       filtered = filtered.filter(
         p =>
-          p.title.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query) ||
-          p.category.toLowerCase().includes(query)
+          (p.name || "").toLowerCase().includes(query) ||
+          (p.description || "").toLowerCase().includes(query)
       );
-    }
-
-    // Filter by category
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(p => selectedCategories.includes(p.category));
     }
 
     // Filter by price
     filtered = filtered.filter(
-      p => p.price >= priceRange[0] && p.price <= priceRange[1]
+      p => Number(p.price) >= priceRange[0] && Number(p.price) <= priceRange[1]
     );
-
-    // Filter by rating
-    if (minRating > 0) {
-      filtered = filtered.filter(p => p.rating >= minRating);
-    }
 
     // Sort
     switch (sortBy) {
       case "price-low":
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => Number(a.price) - Number(b.price));
         break;
       case "price-high":
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => Number(b.price) - Number(a.price));
         break;
-      case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case "reviews":
-        filtered.sort((a, b) => b.reviews - a.reviews);
-        break;
+      case "newest":
       default:
-        filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }
 
     return filtered;
-  }, [queryParam, selectedCategories, priceRange, minRating, sortBy]);
+  }, [products, queryParam, priceRange, sortBy]);
 
   const toggleCategory = (categoryId) => {
     setSelectedCategories(prev =>
@@ -87,25 +81,6 @@ export function Browse() {
 
   const FilterPanel = () => (
     <div className="space-y-6">
-      {/* Categories */}
-      <div>
-        <h3 className="font-semibold mb-3">Categories</h3>
-        <div className="space-y-2">
-          {categories.map(category => (
-            <div key={category.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={category.id}
-                checked={selectedCategories.includes(category.id)}
-                onCheckedChange={() => toggleCategory(category.id)}
-              />
-              <Label htmlFor={category.id} className="cursor-pointer">
-                {category.icon} {category.name}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Price Range */}
       <div>
         <h3 className="font-semibold mb-3">Price Range</h3>
@@ -125,25 +100,6 @@ export function Browse() {
         </div>
       </div>
 
-      {/* Rating */}
-      <div>
-        <h3 className="font-semibold mb-3">Minimum Rating</h3>
-        <div className="space-y-2">
-          {[4.5, 4.0, 3.5, 0].map(rating => (
-            <div key={rating} className="flex items-center space-x-2">
-              <Checkbox
-                id={`rating-${rating}`}
-                checked={minRating === rating}
-                onCheckedChange={() => setMinRating(rating)}
-              />
-              <Label htmlFor={`rating-${rating}`} className="cursor-pointer">
-                {rating > 0 ? `${rating}+ stars` : "All ratings"}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Clear Filters */}
       <Button
         variant="outline"
@@ -151,7 +107,6 @@ export function Browse() {
         onClick={() => {
           setSelectedCategories([]);
           setPriceRange([0, 30000]);
-          setMinRating(0);
         }}
       >
         Clear All Filters
@@ -168,8 +123,6 @@ export function Browse() {
             <h1 className="text-3xl mb-2">
               {queryParam
                 ? `Search results for "${queryParam}"`
-                : categoryParam
-                ? categories.find(c => c.id === categoryParam)?.name
                 : "All Items"}
             </h1>
             <p className="text-gray-600">{filteredProducts.length} items found</p>
@@ -198,11 +151,9 @@ export function Browse() {
               onChange={e => setSortBy(e.target.value)}
               className="border rounded-md px-4 py-2 flex-1 sm:flex-none"
             >
-              <option value="featured">Featured</option>
+              <option value="newest">Newest</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
-              <option value="reviews">Most Reviews</option>
             </select>
           </div>
         </div>
@@ -218,7 +169,11 @@ export function Browse() {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-16">
+                <p className="text-gray-500 text-lg">Loading products...</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map(product => (
                   <ProductCard key={product.id} product={product} />
@@ -232,7 +187,6 @@ export function Browse() {
                   onClick={() => {
                     setSelectedCategories([]);
                     setPriceRange([0, 30000]);
-                    setMinRating(0);
                   }}
                 >
                   Clear Filters

@@ -89,8 +89,33 @@ export function MyAccount() {
     }
   };
 
+  const passwordHasUppercase = /[A-Z]/.test(password);
+  const passwordHasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  const passwordMinLength = password.length >= 8;
+  const passwordIsValid = passwordHasUppercase && passwordHasSymbol && passwordMinLength;
+
   const handleRegister = async (event) => {
     event.preventDefault();
+    if (!fullName.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+    if (!email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    if (!passwordMinLength) {
+      toast.error("Password must be at least 8 characters long");
+      return;
+    }
+    if (!passwordHasUppercase) {
+      toast.error("Password must contain at least one uppercase letter");
+      return;
+    }
+    if (!passwordHasSymbol) {
+      toast.error("Password must contain at least one special character (!@#$%^&* etc.)");
+      return;
+    }
     setLoading(true);
     try {
       const data = await register(fullName, email, password);
@@ -179,9 +204,26 @@ export function MyAccount() {
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       required
+                      minLength={8}
                     />
+                    {password.length > 0 && (
+                      <div className="mt-2 space-y-1 text-xs">
+                        <div className={`flex items-center gap-1 ${passwordMinLength ? 'text-green-600' : 'text-red-500'}`}>
+                          <span>{passwordMinLength ? '✓' : '✗'}</span>
+                          <span>At least 8 characters</span>
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordHasUppercase ? 'text-green-600' : 'text-red-500'}`}>
+                          <span>{passwordHasUppercase ? '✓' : '✗'}</span>
+                          <span>At least one uppercase letter (A-Z)</span>
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordHasSymbol ? 'text-green-600' : 'text-red-500'}`}>
+                          <span>{passwordHasSymbol ? '✓' : '✗'}</span>
+                          <span>At least one special character (!@#$%^&* etc.)</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading || !passwordIsValid}>
                     {loading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
@@ -281,6 +323,12 @@ export function MyAccount() {
                   <div className="border-t pt-2">
                     <p className="text-xs text-gray-500">Shipping to:</p>
                     <p className="text-sm text-gray-700 whitespace-pre-line">{order.shippingAddress}</p>
+                  </div>
+                )}
+                {order.trackingNumber && (
+                  <div className="border-t pt-2">
+                    <p className="text-xs text-gray-500">Tracking Number:</p>
+                    <p className="text-sm font-medium text-indigo-700">{order.trackingNumber}</p>
                   </div>
                 )}
               </Card>

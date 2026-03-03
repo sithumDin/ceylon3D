@@ -1,11 +1,23 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { ProductCard } from "../components/ProductCard";
-import { products, categories } from "../data/mockData";
+import { getAllProducts } from "../lib/api";
 import { Button } from "../components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 export function Home() {
-  const featuredProducts = products.filter(p => p.featured);
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    getAllProducts()
+      .then((data) => setProducts(data))
+      .catch(() => setProducts([]));
+  }, []);
+
+  // Show up to 8 latest products
+  const featuredProducts = [...products]
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .slice(0, 8);
 
   return (
     <div>
@@ -26,28 +38,8 @@ export function Home() {
                   <ArrowRight className="ml-2 size-5" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white/10">
-                Become a Seller
-              </Button>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-3xl mb-8">Browse by Category</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.map(category => (
-            <Link
-              key={category.id}
-              to={`/browse?category=${category.id}`}
-              className="bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow text-center"
-            >
-              <div className="text-4xl mb-3">{category.icon}</div>
-              <h3 className="font-medium">{category.name}</h3>
-            </Link>
-          ))}
         </div>
       </section>
 
@@ -55,7 +47,7 @@ export function Home() {
       <section className="bg-gray-100 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl">Featured Items</h2>
+            <h2 className="text-3xl">Latest Products</h2>
             <Link to="/browse">
               <Button variant="outline">
                 View All
@@ -63,11 +55,15 @@ export function Home() {
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {featuredProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {featuredProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 py-8">No products yet. Check back soon!</p>
+          )}
         </div>
       </section>
 

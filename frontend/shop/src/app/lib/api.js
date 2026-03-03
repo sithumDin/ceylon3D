@@ -69,6 +69,13 @@ export function updateAdminShopOrderStatus(orderId, status) {
 	});
 }
 
+export function updateShopOrderTracking(orderId, trackingNumber) {
+	return authJson(`/orders/admin/${orderId}/tracking`, {
+		method: "PUT",
+		body: { trackingNumber },
+	});
+}
+
 export function getAdminStlOrders() {
 	return authJson("/stl-orders/admin");
 }
@@ -91,6 +98,45 @@ export function updateStlOrderPrice(orderId, estimatedPrice) {
 	return authJson(`/stl-orders/admin/${orderId}/price`, {
 		method: "PUT",
 		body: { estimatedPrice },
+	});
+}
+
+export function deleteStlOrder(orderId) {
+	return authJson(`/stl-orders/admin/${orderId}`, {
+		method: "DELETE",
+	});
+}
+
+export function getStlOrderDownloadUrl(orderId) {
+	const token = localStorage.getItem("token");
+	return `${API_BASE_URL}/stl-orders/admin/${orderId}/download?token=${encodeURIComponent(token || "")}`;
+}
+
+export function downloadStlOrderFile(orderId) {
+	const token = localStorage.getItem("token");
+	if (!token) throw new Error("Please log in first");
+
+	return fetch(`${API_BASE_URL}/stl-orders/admin/${orderId}/download`, {
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+	}).then(async (res) => {
+		if (!res.ok) throw new Error("File download failed");
+		const blob = await res.blob();
+		const contentDisposition = res.headers.get("Content-Disposition");
+		let filename = "download";
+		if (contentDisposition) {
+			const match = contentDisposition.match(/filename="?(.+?)"?$/);
+			if (match) filename = match[1];
+		}
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		window.URL.revokeObjectURL(url);
 	});
 }
 
