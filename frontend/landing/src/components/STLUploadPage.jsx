@@ -31,16 +31,19 @@ export function STLUploadPage() {
     return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
   };
 
-  const isStlFile = (file) => file.name.toLowerCase().endsWith('.stl');
+  const isAllowedFile = (file) => {
+    const name = file.name.toLowerCase();
+    return name.endsWith('.stl') || name.endsWith('.pdf') || name.endsWith('.jpg') || name.endsWith('.jpeg');
+  };
 
   const selectFile = (file) => {
     if (!file) {
       return;
     }
 
-    if (!isStlFile(file)) {
+    if (!isAllowedFile(file)) {
       setSelectedFile(null);
-      setStatusMessage('Please choose a valid .stl file.');
+      setStatusMessage('Please choose a valid .stl, .pdf, or .jpg file.');
       return;
     }
 
@@ -79,7 +82,7 @@ export function STLUploadPage() {
     event.preventDefault();
 
     if (!selectedFile) {
-      setStatusMessage('Please upload your STL file first.');
+      setStatusMessage('Please upload your file first (.stl, .pdf, or .jpg).');
       return;
     }
 
@@ -142,7 +145,7 @@ export function STLUploadPage() {
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                 <Upload className="w-7 h-7 text-blue-600" />
-                Send Your STL File
+                Send Your File (STL, PDF, or JPG)
               </h2>
 
               <div
@@ -161,7 +164,7 @@ export function STLUploadPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".stl"
+                  accept=".stl,.pdf,.jpg,.jpeg,application/pdf,image/jpeg"
                   onChange={handleInputFileChange}
                   className="hidden"
                 />
@@ -180,7 +183,7 @@ export function STLUploadPage() {
                           <p className="text-sm font-semibold text-gray-900 truncate">{selectedFile.name}</p>
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                             <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">{formatFileSize(selectedFile.size)}</span>
-                            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">.STL</span>
+                            <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">{selectedFile.name.split('.').pop().toUpperCase()}</span>
                             <span className="px-2.5 py-1 rounded-full bg-green-100 text-green-700">Ready</span>
                           </div>
                         </div>
@@ -219,7 +222,7 @@ export function STLUploadPage() {
                     <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto ring-4 ring-blue-100/60">
                       <Upload className="w-8 h-8 text-blue-600" />
                     </div>
-                    <p className="text-lg font-semibold text-gray-900">Drop your STL file here</p>
+                    <p className="text-lg font-semibold text-gray-900">Drop your file here (STL, PDF, or JPG)</p>
                     <p className="text-sm text-gray-600">or click to browse from your device</p>
                     <button
                       type="button"
@@ -242,7 +245,7 @@ export function STLUploadPage() {
               </div>
 
               <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs">
-                <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600">Supported format: .STL</span>
+                <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600">Supported formats: .STL, .PDF, .JPG</span>
                 <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600">Single file upload</span>
               </div>
             </div>
@@ -335,7 +338,7 @@ export function STLUploadPage() {
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  {isUploading ? 'Submitting...' : selectedFile ? 'Buy Now' : 'Upload STL File First'}
+                  {isUploading ? 'Submitting...' : selectedFile ? 'Buy Now' : 'Upload File First'}
                 </button>
               </div>
             </div>

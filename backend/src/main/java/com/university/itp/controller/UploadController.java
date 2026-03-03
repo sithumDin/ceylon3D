@@ -46,8 +46,9 @@ public class UploadController {
         }
 
         String originalName = StringUtils.cleanPath(file.getOriginalFilename() == null ? "" : file.getOriginalFilename());
-        if (!originalName.toLowerCase().endsWith(".stl")) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Only .stl files are allowed"));
+        String lowerName = originalName.toLowerCase();
+        if (!lowerName.endsWith(".stl") && !lowerName.endsWith(".pdf") && !lowerName.endsWith(".jpg") && !lowerName.endsWith(".jpeg")) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Only .stl, .pdf, .jpg and .jpeg files are allowed"));
         }
 
         Path uploadDir = Path.of(System.getProperty("java.io.tmpdir"), "ceylon3d-uploads");

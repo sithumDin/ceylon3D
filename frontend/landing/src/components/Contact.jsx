@@ -17,7 +17,7 @@ export function Contact() {
     e.preventDefault();
 
     if (!stlFile) {
-      alert('Please select an STL file before submitting.');
+      alert('Please select a file (.stl, .pdf, or .jpg) before submitting.');
       return;
     }
 
@@ -146,7 +146,7 @@ export function Contact() {
                   type="file"
                   id="stlFileInput"
                   name="stlFile"
-                  accept=".stl,model/stl,application/sla,application/vnd.ms-pki.stl"
+                  accept=".stl,.pdf,.jpg,.jpeg,model/stl,application/pdf,image/jpeg"
                   onChange={handleFileChange}
                   required
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
