@@ -5,8 +5,6 @@ import { categories } from "../data/mockData";
 import { getAllProducts } from "../lib/api";
 import { Button } from "../components/ui/button";
 import { Slider } from "../components/ui/slider";
-import { Label } from "../components/ui/label";
-import { Checkbox } from "../components/ui/checkbox";
 import { SlidersHorizontal } from "lucide-react";
 import {
   Sheet,
@@ -50,6 +48,11 @@ export function Browse() {
       );
     }
 
+    // Filter by category
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(p => selectedCategories.includes(p.category));
+    }
+
     // Filter by price
     filtered = filtered.filter(
       p => Number(p.price) >= priceRange[0] && Number(p.price) <= priceRange[1]
@@ -69,7 +72,7 @@ export function Browse() {
     }
 
     return filtered;
-  }, [products, queryParam, priceRange, sortBy]);
+  }, [products, queryParam, selectedCategories, priceRange, sortBy]);
 
   const toggleCategory = (categoryId) => {
     setSelectedCategories(prev =>
@@ -79,8 +82,26 @@ export function Browse() {
     );
   };
 
-  const FilterPanel = () => (
+  const filterPanel = (
     <div className="space-y-6">
+      {/* Categories */}
+      <div>
+        <h3 className="font-semibold mb-3">Categories</h3>
+        <div className="space-y-2">
+          {categories.map((cat) => (
+            <label key={cat.id} className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={selectedCategories.includes(cat.id)}
+                onChange={() => toggleCategory(cat.id)}
+                className="size-4 rounded border-gray-300 accent-black cursor-pointer"
+              />
+              <span className="text-sm">{cat.icon} {cat.name}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       {/* Price Range */}
       <div>
         <h3 className="font-semibold mb-3">Price Range</h3>
@@ -141,7 +162,7 @@ export function Browse() {
                   <SheetTitle>Filters</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6">
-                  <FilterPanel />
+                  {filterPanel}
                 </div>
               </SheetContent>
             </Sheet>
@@ -163,7 +184,7 @@ export function Browse() {
           {/* Desktop Filters */}
           <aside className="hidden sm:block w-64 flex-shrink-0">
             <div className="bg-white border rounded-lg p-6 sticky top-24">
-              <FilterPanel />
+              {filterPanel}
             </div>
           </aside>
 

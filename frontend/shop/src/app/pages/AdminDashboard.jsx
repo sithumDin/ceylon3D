@@ -17,6 +17,7 @@ import {
   updateStlOrderPrice,
 } from "../lib/api";
 import { toast } from "sonner";
+import { categories } from "../data/mockData";
 
 const SHOP_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
 const STL_STATUSES = ["PENDING_QUOTE", "QUOTED", "PRINTING", "READY", "DELIVERED", "CANCELLED"];
@@ -54,6 +55,7 @@ export function AdminDashboard() {
     description: "",
     price: "",
     stock: "",
+    category: "",
   });
   const [productImage, setProductImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -62,7 +64,7 @@ export function AdminDashboard() {
   // Product management state
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", description: "", price: "", stock: "" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", price: "", stock: "", category: "" });
   const [editImage, setEditImage] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState(null);
   const editFileInputRef = useRef(null);
@@ -237,6 +239,10 @@ export function AdminDashboard() {
       toast.error("Product description is required");
       return;
     }
+    if (!productForm.category) {
+      toast.error("Please select a category");
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -244,6 +250,7 @@ export function AdminDashboard() {
       formData.append("description", productForm.description.trim());
       formData.append("price", productForm.price);
       formData.append("stock", productForm.stock);
+      formData.append("category", productForm.category);
       if (productImage) {
         formData.append("image", productImage);
       }
@@ -251,7 +258,7 @@ export function AdminDashboard() {
       await createProduct(formData);
 
       toast.success("Product created");
-      setProductForm({ name: "", description: "", price: "", stock: "" });
+      setProductForm({ name: "", description: "", price: "", stock: "", category: "" });
       setProductImage(null);
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -279,6 +286,7 @@ export function AdminDashboard() {
       description: product.description || "",
       price: product.price?.toString() || "",
       stock: product.stock?.toString() || "",
+      category: product.category || "",
     });
     setEditImage(null);
     setEditImagePreview(product.imagePath || null);
@@ -314,6 +322,10 @@ export function AdminDashboard() {
       toast.error("Product description is required");
       return;
     }
+    if (!editForm.category) {
+      toast.error("Please select a category");
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -321,6 +333,7 @@ export function AdminDashboard() {
       formData.append("description", editForm.description.trim());
       formData.append("price", editForm.price);
       formData.append("stock", editForm.stock);
+      formData.append("category", editForm.category);
       if (editImage) {
         formData.append("image", editImage);
       }
@@ -695,6 +708,17 @@ export function AdminDashboard() {
                 placeholder="Stock"
                 required
               />
+              <select
+                className="w-full border rounded-md px-3 py-2 bg-white"
+                value={productForm.category}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, category: event.target.value }))}
+                required
+              >
+                <option value="">Select Category</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
+                ))}
+              </select>
               <div className="w-full">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
                 <input
@@ -739,6 +763,7 @@ export function AdminDashboard() {
                     <tr className="border-b text-left">
                       <th className="py-2 px-2">Image</th>
                       <th className="py-2 px-2">Name</th>
+                      <th className="py-2 px-2">Category</th>
                       <th className="py-2 px-2">Price (LKR)</th>
                       <th className="py-2 px-2">Stock</th>
                       <th className="py-2 px-2">Actions</th>
@@ -759,6 +784,9 @@ export function AdminDashboard() {
                           )}
                         </td>
                         <td className="py-2 px-2 font-medium">{product.name}</td>
+                        <td className="py-2 px-2 text-sm text-gray-600">
+                          {categories.find(c => c.id === product.category)?.name || product.category || "—"}
+                        </td>
                         <td className="py-2 px-2">{Number(product.price).toFixed(2)}</td>
                         <td className="py-2 px-2">{product.stock}</td>
                         <td className="py-2 px-2">
@@ -839,6 +867,20 @@ export function AdminDashboard() {
                       required
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 bg-white"
+                    value={editForm.category}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

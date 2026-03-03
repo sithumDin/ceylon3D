@@ -50,6 +50,7 @@ public class ProductController {
             @RequestParam("description") String description,
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
+            @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "image", required = false) MultipartFile image
     ) throws IOException {
         String imagePath = null;
@@ -68,6 +69,7 @@ public class ProductController {
                 .description(description)
                 .price(price)
                 .stock(stock)
+                .category(category)
                 .imagePath(imagePath)
                 .build();
         productRepository.save(product);
@@ -97,6 +99,7 @@ public class ProductController {
             @RequestParam("description") String description,
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
+            @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "image", required = false) MultipartFile image
     ) throws IOException {
         return productRepository.findById(id).map(p -> {
@@ -104,6 +107,7 @@ public class ProductController {
             p.setDescription(description);
             p.setPrice(price);
             p.setStock(stock);
+            p.setCategory(category);
             if (image != null && !image.isEmpty()) {
                 try {
                     Files.createDirectories(UPLOAD_DIR);

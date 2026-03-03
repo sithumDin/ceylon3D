@@ -29,6 +29,8 @@ public class Product {
 
     private String imagePath;
 
+    private String category;
+
     private Instant createdAt;
 
     @PrePersist

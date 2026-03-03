@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Star, TruckIcon } from "lucide-react";
 import { Card } from "./ui/card";
+import { categories } from "../data/mockData";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
@@ -18,6 +19,7 @@ function getImageUrl(product) {
 export function ProductCard({ product }) {
   const title = product.title || product.name || "Untitled";
   const imageUrl = getImageUrl(product);
+  const categoryInfo = categories.find(c => c.id === product.category);
 
   return (
     <Link to={`/product/${product.id}`}>
@@ -34,6 +36,11 @@ export function ProductCard({ product }) {
           )}
         </div>
         <div className="p-4">
+          {categoryInfo && (
+            <span className="inline-block text-xs font-medium bg-gray-100 text-gray-700 rounded-full px-2 py-0.5 mb-2">
+              {categoryInfo.icon} {categoryInfo.name}
+            </span>
+          )}
           <h3 className="font-medium text-sm line-clamp-2 mb-2 min-h-[2.5rem]">
             {title}
           </h3>
