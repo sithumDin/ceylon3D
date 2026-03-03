@@ -1,8 +1,12 @@
 # Node
+node_modules/
 frontend/landing/node_modules/
 frontend/landing/dist/
 frontend/shop/node_modules/
 frontend/shop/dist/
+
+# Duplicate folders
+frontend 2/
 
 # Maven/Java
 backend/target/
