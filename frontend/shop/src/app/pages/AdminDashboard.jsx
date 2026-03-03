@@ -4,10 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import {
   calculateStlCost,
   createProduct,
+  deleteProduct,
+  getAllProducts,
   getAdminShopOrders,
   getAdminStlOrders,
   updateAdminShopOrderStatus,
   updateAdminStlOrderStatus,
+  updateProduct,
   updateStlOrderPrice,
 } from "../lib/api";
 import { toast } from "sonner";
@@ -53,6 +56,14 @@ export function AdminDashboard() {
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Product management state
+  const [products, setProducts] = useState([]);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", description: "", price: "", stock: "" });
+  const [editImage, setEditImage] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState(null);
+  const editFileInputRef = useRef(null);
+
   const authUser = useMemo(() => {
     const value = localStorage.getItem("authUser");
     if (!value) {
@@ -68,6 +79,16 @@ export function AdminDashboard() {
 
   const isAdmin = Boolean(authUser?.roles?.includes("ROLE_ADMIN"));
   const hasToken = Boolean(localStorage.getItem("token"));
+
+  const loadProducts = async () => {
+    try {
+      const data = await getAllProducts();
+      setProducts(data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load products";
+      toast.error(message);
+    }
+  };
 
   const loadData = async () => {
     setLoadingOrders(true);
@@ -86,6 +107,7 @@ export function AdminDashboard() {
   useEffect(() => {
     if (hasToken && isAdmin) {
       loadData();
+      loadProducts();
     }
   }, [hasToken, isAdmin]);
 
@@ -181,6 +203,7 @@ export function AdminDashboard() {
       setProductImage(null);
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      await loadProducts();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Product creation failed";
       toast.error(message);
@@ -194,6 +217,65 @@ export function AdminDashboard() {
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setEditForm({
+      name: product.name || "",
+      description: product.description || "",
+      price: product.price?.toString() || "",
+      stock: product.stock?.toString() || "",
+    });
+    setEditImage(null);
+    setEditImagePreview(product.imagePath || null);
+  };
+
+  const handleEditImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setEditImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onUpdateProduct = async (event) => {
+    event.preventDefault();
+    if (!editingProduct) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("name", editForm.name);
+      formData.append("description", editForm.description);
+      formData.append("price", editForm.price);
+      formData.append("stock", editForm.stock);
+      if (editImage) {
+        formData.append("image", editImage);
+      }
+
+      await updateProduct(editingProduct.id, formData);
+      toast.success("Product updated");
+      setEditingProduct(null);
+      await loadProducts();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Product update failed";
+      toast.error(message);
+    }
+  };
+
+  const onDeleteProduct = async (productId) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      await deleteProduct(productId);
+      toast.success("Product deleted");
+      await loadProducts();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Product deletion failed";
+      toast.error(message);
     }
   };
 
@@ -510,6 +592,138 @@ export function AdminDashboard() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Manage Products Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Manage Products ({products.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {products.length === 0 ? (
+              <p className="text-gray-600">No products found.</p>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="py-2 px-2">Image</th>
+                      <th className="py-2 px-2">Name</th>
+                      <th className="py-2 px-2">Price (LKR)</th>
+                      <th className="py-2 px-2">Stock</th>
+                      <th className="py-2 px-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((product) => (
+                      <tr key={product.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2">
+                          {product.imagePath ? (
+                            <img
+                              src={product.imagePath}
+                              alt={product.name}
+                              className="h-12 w-12 object-cover rounded-md border"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 bg-gray-200 rounded-md flex items-center justify-center text-gray-400 text-xs">No img</div>
+                          )}
+                        </td>
+                        <td className="py-2 px-2 font-medium">{product.name}</td>
+                        <td className="py-2 px-2">{Number(product.price).toFixed(2)}</td>
+                        <td className="py-2 px-2">{product.stock}</td>
+                        <td className="py-2 px-2">
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditModal(product)}>Edit</Button>
+                            <Button variant="destructive" size="sm" onClick={() => onDeleteProduct(product.id)}>Delete</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Edit Product Modal */}
+        {editingProduct && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-auto">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Edit Product #{editingProduct.id}</h3>
+                <button
+                  onClick={() => setEditingProduct(null)}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >&times;</button>
+              </div>
+              <form onSubmit={onUpdateProduct} className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-md px-3 py-2"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (LKR)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      className="w-full border rounded-md px-3 py-2"
+                      value={editForm.price}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, price: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-full border rounded-md px-3 py-2"
+                      value={editForm.stock}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, stock: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    className="w-full border rounded-md px-3 py-2 min-h-[100px]"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditImageChange}
+                    className="w-full border rounded-md px-3 py-2 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                  />
+                  {editImagePreview && (
+                    <div className="mt-2">
+                      <img src={editImagePreview} alt="Preview" className="h-20 w-20 object-cover rounded-md border" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button type="submit">Save Changes</Button>
+                  <Button type="button" variant="outline" onClick={() => setEditingProduct(null)}>Cancel</Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Price Calculator Modal for STL Orders */}
         {pricingOrderId !== null && (

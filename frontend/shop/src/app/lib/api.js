@@ -123,3 +123,47 @@ export function createProduct(formData) {
 		return res.json();
 	});
 }
+
+export function getAllProducts() {
+	return fetch(`${API_BASE_URL}/products`).then(async (res) => {
+		if (!res.ok) throw new Error("Failed to fetch products");
+		return res.json();
+	});
+}
+
+export function updateProduct(id, formData) {
+	const token = localStorage.getItem("token");
+	if (!token) throw new Error("Please log in first");
+
+	return fetch(`${API_BASE_URL}/products/${id}`, {
+		method: "PUT",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+		body: formData,
+	}).then(async (res) => {
+		if (!res.ok) {
+			const errorText = await res.text();
+			throw new Error(errorText || "Product update failed");
+		}
+		return res.json();
+	});
+}
+
+export function deleteProduct(id) {
+	const token = localStorage.getItem("token");
+	if (!token) throw new Error("Please log in first");
+
+	return fetch(`${API_BASE_URL}/products/${id}`, {
+		method: "DELETE",
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
+	}).then(async (res) => {
+		if (!res.ok) {
+			const errorText = await res.text();
+			throw new Error(errorText || "Product deletion failed");
+		}
+		return null;
+	});
+}

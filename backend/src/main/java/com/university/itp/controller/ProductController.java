@@ -90,14 +90,33 @@ public class ProductController {
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping("/{id}")
-    public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product body){
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> update(
+            @PathVariable Long id,
+            @RequestParam("name") String name,
+            @RequestParam("description") String description,
+            @RequestParam("price") BigDecimal price,
+            @RequestParam("stock") Integer stock,
+            @RequestParam(value = "image", required = false) MultipartFile image
+    ) throws IOException {
         return productRepository.findById(id).map(p -> {
-            p.setName(body.getName());
-            p.setDescription(body.getDescription());
-            p.setPrice(body.getPrice());
-            p.setStock(body.getStock());
-            p.setImagePath(body.getImagePath());
+            p.setName(name);
+            p.setDescription(description);
+            p.setPrice(price);
+            p.setStock(stock);
+            if (image != null && !image.isEmpty()) {
+                try {
+                    Files.createDirectories(UPLOAD_DIR);
+                    String originalName = StringUtils.cleanPath(
+                            image.getOriginalFilename() == null ? "image.jpg" : image.getOriginalFilename());
+                    String storedName = UUID.randomUUID() + "-" + originalName;
+                    Path target = UPLOAD_DIR.resolve(storedName);
+                    Files.copy(image.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+                    p.setImagePath("/api/products/images/" + storedName);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to upload image", e);
+                }
+            }
             productRepository.save(p);
             return ResponseEntity.ok(p);
         }).orElse(ResponseEntity.notFound().build());
