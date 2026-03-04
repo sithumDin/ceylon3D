@@ -5,6 +5,7 @@ import { Card } from "../components/ui/card";
 import { Package, Heart, Settings, CreditCard, MapPin, Bell, LogOut, RefreshCcw, Printer, Pencil, X, Check, Menu, User, Clock, Truck, CheckCircle, XCircle, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { login, register, getMyOrders, getMyStlOrders, confirmStlOrder, updateMyStlOrder } from "../lib/api";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 
 const USER_NAV_ITEMS = [
   { id: "orders", label: "My Orders", icon: Package },
