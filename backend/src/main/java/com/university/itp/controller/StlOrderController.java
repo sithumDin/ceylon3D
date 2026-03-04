@@ -1,10 +1,17 @@
 package com.university.itp.controller;
 
 import com.university.itp.model.StlOrder;
+import com.university.itp.model.OrderEntity;
+import com.university.itp.model.OrderItem;
+import com.university.itp.model.OrderCategory;
+import com.university.itp.model.User;
 import com.university.itp.repository.StlOrderRepository;
+import com.university.itp.repository.OrderRepository;
+import com.university.itp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.core.io.Resource;
@@ -18,6 +25,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +38,21 @@ public class StlOrderController {
 
     @Autowired
     private StlOrderRepository stlOrderRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    /** Get the logged-in user's own STL orders (matched by userId OR email) */
+    @GetMapping("/my")
+    public List<StlOrder> myStlOrders(Authentication auth) {
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        Long userId = user != null ? user.getId() : -1L;
+        return stlOrderRepository.findByUserIdOrEmail(userId, email);
+    }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/admin")
@@ -54,11 +77,109 @@ public class StlOrderController {
         return stlOrderRepository.findById(id).map(order -> {
             BigDecimal price = new BigDecimal(req.get("estimatedPrice").toString());
             order.setEstimatedPrice(price);
+
+            // Save calculation details
+            if (req.containsKey("printTimeHours")) {
+                order.setPrintTimeHours(((Number) req.get("printTimeHours")).intValue());
+            }
+            if (req.containsKey("printTimeMinutes")) {
+                order.setPrintTimeMinutes(((Number) req.get("printTimeMinutes")).intValue());
+            }
+            if (req.containsKey("weightGrams")) {
+                order.setWeightGrams(((Number) req.get("weightGrams")).doubleValue());
+            }
+            if (req.containsKey("supportStructures")) {
+                order.setSupportStructures(Boolean.TRUE.equals(req.get("supportStructures")));
+            }
+            if (req.containsKey("material")) {
+                order.setMaterial(normalizeMaterial((String) req.get("material")));
+            }
+
             // Auto-set status to QUOTED when price is calculated
             if ("PENDING_QUOTE".equals(order.getStatus())) {
                 order.setStatus("QUOTED");
             }
             stlOrderRepository.save(order);
+            return ResponseEntity.ok(order);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /** User updates their own STL order (only allowed while PENDING_QUOTE) */
+    @PutMapping("/my/{id}")
+    public ResponseEntity<?> updateMyOrder(@PathVariable Long id, @RequestBody Map<String, Object> req, Authentication auth) {
+        String email = auth.getName();
+        return stlOrderRepository.findById(id).map(order -> {
+            if (!email.equalsIgnoreCase(order.getCustomerEmail())) {
+                return ResponseEntity.status(403).body(Map.of("message", "You can only update your own orders"));
+            }
+            if (!"PENDING_QUOTE".equals(order.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Only pending orders can be updated"));
+            }
+            if (req.containsKey("material")) {
+                String mat = normalizeMaterial((String) req.get("material"));
+                order.setMaterial(mat);
+            }
+            if (req.containsKey("quantity")) {
+                int qty = ((Number) req.get("quantity")).intValue();
+                if (qty < 1) qty = 1;
+                order.setQuantity(qty);
+            }
+            if (req.containsKey("note")) {
+                order.setNote((String) req.get("note"));
+            }
+            stlOrderRepository.save(order);
+            return ResponseEntity.ok(order);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /** User confirms a QUOTED STL order — changes status to CONFIRMED and creates a shop order */
+    @PutMapping("/my/{id}/confirm")
+    public ResponseEntity<?> confirmOrder(@PathVariable Long id, Authentication auth) {
+        String email = auth.getName();
+        return stlOrderRepository.findById(id).map(order -> {
+            // Only the owner can confirm their own order
+            if (!email.equalsIgnoreCase(order.getCustomerEmail())) {
+                return ResponseEntity.status(403).body(Map.of("message", "You can only confirm your own orders"));
+            }
+            // Only QUOTED orders can be confirmed
+            if (!"QUOTED".equals(order.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Only quoted orders can be confirmed"));
+            }
+            order.setStatus("CONFIRMED");
+            stlOrderRepository.save(order);
+
+            // Create a shop order so it appears in the orders list
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user != null) {
+                OrderEntity shopOrder = new OrderEntity();
+                shopOrder.setUser(user);
+                shopOrder.setCategory(OrderCategory.STL);
+                shopOrder.setStatus("PENDING");
+                shopOrder.setTotalAmount(order.getEstimatedPrice());
+                shopOrder.setShippingAddress(order.getCustomerName() + "\n" + (order.getPhone() != null ? order.getPhone() : ""));
+
+                // Build the file name without the UUID prefix
+                String displayFileName = order.getFileName();
+                if (displayFileName != null) {
+                    int dashIdx = displayFileName.indexOf('-');
+                    if (dashIdx > 0 && dashIdx < displayFileName.length() - 1) {
+                        displayFileName = displayFileName.substring(dashIdx + 1);
+                    }
+                }
+
+                OrderItem item = new OrderItem();
+                item.setOrder(shopOrder);
+                item.setProductName("3D Print: " + (displayFileName != null ? displayFileName : "STL File") + " (" + order.getMaterial() + ")");
+                item.setQuantity(order.getQuantity() != null ? order.getQuantity() : 1);
+                item.setUnitPrice(order.getEstimatedPrice());
+
+                List<OrderItem> items = new ArrayList<>();
+                items.add(item);
+                shopOrder.setItems(items);
+
+                orderRepository.save(shopOrder);
+            }
+
             return ResponseEntity.ok(order);
         }).orElse(ResponseEntity.notFound().build());
     }

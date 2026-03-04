@@ -47,7 +47,10 @@ async function authJson(path, options = {}) {
 		return null;
 	}
 
-	return (await response.json());
+	// Handle empty body responses (e.g. DELETE returning 200 with no body)
+	const text = await response.text();
+	if (!text) return null;
+	return JSON.parse(text);
 }
 
 export function login(email, password) {
@@ -94,10 +97,10 @@ export function calculateStlCost(params) {
 	});
 }
 
-export function updateStlOrderPrice(orderId, estimatedPrice) {
+export function updateStlOrderPrice(orderId, estimatedPrice, calcData = {}) {
 	return authJson(`/stl-orders/admin/${orderId}/price`, {
 		method: "PUT",
-		body: { estimatedPrice },
+		body: { estimatedPrice, ...calcData },
 	});
 }
 
@@ -149,6 +152,23 @@ export function placeOrder(shippingAddress, items) {
 
 export function getMyOrders() {
 	return authJson("/orders");
+}
+
+export function getMyStlOrders() {
+	return authJson("/stl-orders/my");
+}
+
+export function updateMyStlOrder(orderId, data) {
+	return authJson(`/stl-orders/my/${orderId}`, {
+		method: "PUT",
+		body: data,
+	});
+}
+
+export function confirmStlOrder(orderId) {
+	return authJson(`/stl-orders/my/${orderId}/confirm`, {
+		method: "PUT",
+	});
 }
 
 export function createProduct(formData) {
@@ -211,5 +231,37 @@ export function deleteProduct(id) {
 			throw new Error(errorText || "Product deletion failed");
 		}
 		return null;
+	});
+}
+
+// ── Cart API ────────────────────────────────────────────────
+
+export function getCart() {
+	return authJson("/cart");
+}
+
+export function addToCartApi(productId, quantity = 1) {
+	return authJson("/cart", {
+		method: "POST",
+		body: { productId, quantity },
+	});
+}
+
+export function updateCartItem(cartItemId, quantity) {
+	return authJson(`/cart/${cartItemId}`, {
+		method: "PUT",
+		body: { quantity },
+	});
+}
+
+export function removeCartItem(cartItemId) {
+	return authJson(`/cart/${cartItemId}`, {
+		method: "DELETE",
+	});
+}
+
+export function clearCartApi() {
+	return authJson("/cart", {
+		method: "DELETE",
 	});
 }

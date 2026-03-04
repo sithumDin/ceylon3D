@@ -4,7 +4,6 @@ import { Button } from "../components/ui/button";
 import { Separator } from "../components/ui/separator";
 import { TruckIcon, Shield, Package, ArrowLeft } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
-import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
@@ -56,26 +55,33 @@ export function ProductDetail() {
 
   const imageUrl = getImageUrl(product.imagePath);
 
-  const handleAddToCart = () => {
-    addToCart({
-      id: product.id,
-      title: product.name,
-      price: Number(product.price),
-      image: imageUrl,
-      seller: "Ceylon3D",
-    });
-    toast.success("Added to cart!");
+  const handleAddToCart = async () => {
+    try {
+      await addToCart({
+        id: product.id,
+        title: product.name,
+        price: Number(product.price),
+        image: imageUrl,
+        seller: "Ceylon3D",
+      });
+    } catch {
+      // error toast is shown by CartContext
+    }
   };
 
-  const handleBuyNow = () => {
-    addToCart({
-      id: product.id,
-      title: product.name,
-      price: Number(product.price),
-      image: imageUrl,
-      seller: "Ceylon3D",
-    });
-    navigate("/cart");
+  const handleBuyNow = async () => {
+    try {
+      await addToCart({
+        id: product.id,
+        title: product.name,
+        price: Number(product.price),
+        image: imageUrl,
+        seller: "Ceylon3D",
+      });
+      navigate("/cart");
+    } catch {
+      // error toast is shown by CartContext
+    }
   };
 
   return (<div className="bg-white">

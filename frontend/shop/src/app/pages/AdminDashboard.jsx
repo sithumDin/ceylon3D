@@ -18,12 +18,33 @@ import {
 } from "../lib/api";
 import { toast } from "sonner";
 import { categories } from "../data/mockData";
+import {
+  Calculator,
+  Printer,
+  ShoppingCart,
+  PlusCircle,
+  Package,
+  LayoutDashboard,
+  Menu,
+  X,
+} from "lucide-react";
+
+const NAV_ITEMS = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "calculator", label: "Cost Calculator", icon: Calculator },
+  { id: "stl-orders", label: "STL Orders", icon: Printer },
+  { id: "shop-orders", label: "Shop Orders", icon: ShoppingCart },
+  { id: "add-product", label: "Add Product", icon: PlusCircle },
+  { id: "products", label: "Manage Products", icon: Package },
+];
 
 const SHOP_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
-const STL_STATUSES = ["PENDING_QUOTE", "QUOTED", "PRINTING", "READY", "DELIVERED", "CANCELLED"];
+const STL_STATUSES = ["PENDING_QUOTE", "QUOTED", "CONFIRMED", "PRINTING", "READY", "DELIVERED", "CANCELLED"];
 const STL_MATERIALS = ["PLA", "PLA+", "ABS", "ABS+"];
 
 export function AdminDashboard() {
+  const [activeSection, setActiveSection] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shopOrders, setShopOrders] = useState([]);
   const [stlOrders, setStlOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -208,7 +229,13 @@ export function AdminDashboard() {
   const onConfirmPrice = async () => {
     if (!pricingOrderId || !pricingResult) return;
     try {
-      await updateStlOrderPrice(pricingOrderId, pricingResult.sellingPrice);
+      await updateStlOrderPrice(pricingOrderId, pricingResult.sellingPrice, {
+        printTimeHours: Number(pricingCalc.printTimeHours),
+        printTimeMinutes: Number(pricingCalc.printTimeMinutes),
+        weightGrams: Number(pricingCalc.weightGrams),
+        material: pricingCalc.material,
+        supportStructures: pricingCalc.supportStructures,
+      });
       toast.success("Price set and order status updated to QUOTED");
       setPricingOrderId(null);
       setPricingResult(null);
@@ -392,18 +419,121 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl">Admin Dashboard</h1>
-            <p className="text-sm text-gray-600 mt-1">Manage STL orders, shop orders, and products.</p>
-          </div>
-          <Button onClick={loadData} disabled={loadingOrders}>
-            {loadingOrders ? "Loading..." : "Refresh Orders"}
+    <div className="bg-gray-50 min-h-screen flex">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed lg:sticky top-0 left-0 z-50 lg:z-auto h-screen w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-200 ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      }`}>
+        <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">Admin Panel</h2>
+          <button className="lg:hidden text-gray-400 hover:text-gray-600" onClick={() => setSidebarOpen(false)}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => { setActiveSection(item.id); setSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-purple-50 text-purple-700"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? "text-purple-600" : "text-gray-400"}`} />
+                {item.label}
+                {item.id === "stl-orders" && stlOrders.length > 0 && (
+                  <span className="ml-auto bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-full">{stlOrders.length}</span>
+                )}
+                {item.id === "shop-orders" && shopOrders.length > 0 && (
+                  <span className="ml-auto bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">{shopOrders.length}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="px-4 py-4 border-t border-gray-100">
+          <Button onClick={loadData} disabled={loadingOrders} className="w-full" variant="outline">
+            {loadingOrders ? "Loading..." : "Refresh Data"}
           </Button>
         </div>
+      </aside>
 
+      {/* Main content */}
+      <main className="flex-1 min-h-screen">
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center gap-3 lg:hidden">
+          <button onClick={() => setSidebarOpen(true)} className="text-gray-600 hover:text-gray-900">
+            <Menu className="w-6 h-6" />
+          </button>
+          <h1 className="text-lg font-semibold">Admin Dashboard</h1>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        {/* Overview Section */}
+        {activeSection === "overview" && (
+          <>
+            <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection("stl-orders")}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg"><Printer className="w-6 h-6 text-purple-600" /></div>
+                    <div>
+                      <p className="text-2xl font-bold">{stlOrders.length}</p>
+                      <p className="text-sm text-gray-500">STL Orders</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection("shop-orders")}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg"><ShoppingCart className="w-6 h-6 text-blue-600" /></div>
+                    <div>
+                      <p className="text-2xl font-bold">{shopOrders.length}</p>
+                      <p className="text-sm text-gray-500">Shop Orders</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection("products")}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg"><Package className="w-6 h-6 text-green-600" /></div>
+                    <div>
+                      <p className="text-2xl font-bold">{products.length}</p>
+                      <p className="text-sm text-gray-500">Products</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection("stl-orders")}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-yellow-100 rounded-lg"><Printer className="w-6 h-6 text-yellow-600" /></div>
+                    <div>
+                      <p className="text-2xl font-bold">{stlOrders.filter(o => o.status === "PENDING_QUOTE").length}</p>
+                      <p className="text-sm text-gray-500">Pending Quotes</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
+
+        {/* Calculator Section */}
+        {activeSection === "calculator" && (
         <Card>
           <CardHeader>
             <CardTitle>3D Print Cost Calculator</CardTitle>
@@ -493,13 +623,15 @@ export function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+        )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* STL Orders Section */}
+        {(activeSection === "stl-orders") && (
           <Card>
             <CardHeader>
               <CardTitle>STL Orders ({stlOrders.length})</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 max-h-[550px] overflow-auto">
+            <CardContent className="space-y-3 max-h-[700px] overflow-auto">
               {stlOrders.length === 0 && <p className="text-gray-600">No STL orders yet.</p>}
               {stlOrders.map((order) => (
                 <div key={order.id} className="border rounded-md p-3 space-y-2 bg-white">
@@ -530,6 +662,7 @@ export function AdminDashboard() {
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         order.status === "PENDING_QUOTE" ? "bg-yellow-100 text-yellow-800" :
                         order.status === "QUOTED" ? "bg-blue-100 text-blue-800" :
+                        order.status === "CONFIRMED" ? "bg-emerald-100 text-emerald-800" :
                         order.status === "DELIVERED" ? "bg-green-100 text-green-800" :
                         "bg-gray-100 text-gray-800"
                       }`}>{order.status}</span>
@@ -577,18 +710,26 @@ export function AdminDashboard() {
               ))}
             </CardContent>
           </Card>
+        )}
 
+        {/* Shop Orders Section */}
+        {(activeSection === "shop-orders") && (
           <Card>
             <CardHeader>
               <CardTitle>Shop Orders ({shopOrders.length})</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 max-h-[550px] overflow-auto">
+            <CardContent className="space-y-3 max-h-[700px] overflow-auto">
               {shopOrders.length === 0 && <p className="text-gray-600">No shop orders yet.</p>}
               {shopOrders.map((order) => (
                 <div key={order.id} className="border rounded-md p-3 space-y-2 bg-white">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium">Order #{order.id}</p>
+                      <p className="font-medium">
+                        Order #{order.id}
+                        {order.category === "STL" && (
+                          <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">3D Print</span>
+                        )}
+                      </p>
                       <p className="text-sm text-gray-600">{order.user?.fullName || order.user?.email || "Unknown user"}</p>
                       {order.shippingAddress && (
                         <p className="text-xs text-gray-500 whitespace-pre-line mt-1">{order.shippingAddress}</p>
@@ -656,8 +797,10 @@ export function AdminDashboard() {
               ))}
             </CardContent>
           </Card>
-        </div>
+        )}
 
+        {/* Add Product Section */}
+        {activeSection === "add-product" && (
         <Card>
           <CardHeader>
             <CardTitle>Add New Product</CardTitle>
@@ -747,8 +890,10 @@ export function AdminDashboard() {
             </form>
           </CardContent>
         </Card>
+        )}
 
         {/* Manage Products Section */}
+        {activeSection === "products" && (
         <Card>
           <CardHeader>
             <CardTitle>Manage Products ({products.length})</CardTitle>
@@ -803,6 +948,7 @@ export function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Edit Product Modal */}
         {editingProduct && (
@@ -1009,7 +1155,8 @@ export function AdminDashboard() {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

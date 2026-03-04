@@ -1,5 +1,5 @@
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -12,6 +12,33 @@ export function Contact() {
   });
   const [stlFile, setStlFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+  const user = (() => {
+    const value = localStorage.getItem("authUser");
+    if (!value) return null;
+    try { return JSON.parse(value); } catch { return null; }
+  })();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shouldRedirect = params.get('redirect') === '/upload';
+    if (!isLoggedIn) {
+      if (!shouldRedirect) {
+        window.location.href = "/account?redirect=/upload";
+      }
+      return;
+    }
+    if (isLoggedIn && shouldRedirect) {
+      window.history.replaceState({}, '', '/upload'); // Remove param, no reload
+    }
+    if (isLoggedIn && user && user.email && !formData.email) {
+      setFormData((prev) => ({ ...prev, email: user.email }));
+    }
+  }, [isLoggedIn, user]);
+
+  if (!isLoggedIn) {
+    return null;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,7 +72,8 @@ export function Contact() {
       setFormData({ name: '', email: '', phone: '', message: '' });
       setStlFile(null);
     } catch (error) {
-      alert('STL upload failed. Please make sure the backend is running and try again.');
+      const msg = error.message || 'STL upload failed. Please make sure the backend is running and try again.';
+      alert(msg);
       console.error(error);
     } finally {
       setIsUploading(false);

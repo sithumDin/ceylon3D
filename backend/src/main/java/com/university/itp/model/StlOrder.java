@@ -35,7 +35,18 @@ public class StlOrder {
 
     private BigDecimal estimatedPrice;
 
+    private Integer printTimeHours;
+
+    private Integer printTimeMinutes;
+
+    private Double weightGrams;
+
+    private Boolean supportStructures;
+
     private String status;
+
+    /** Linked user account (null if uploaded anonymously with no matching user) */
+    private Long userId;
 
     @Column(columnDefinition = "TEXT")
     private String note;

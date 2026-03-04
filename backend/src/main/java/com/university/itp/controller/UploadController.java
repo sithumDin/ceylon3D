@@ -1,7 +1,9 @@
 package com.university.itp.controller;
 
 import com.university.itp.model.StlOrder;
+import com.university.itp.model.User;
 import com.university.itp.repository.StlOrderRepository;
+import com.university.itp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,9 @@ public class UploadController {
 
     @Autowired
     private StlOrderRepository stlOrderRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping(value = "/stl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> uploadStl(
@@ -62,6 +67,14 @@ public class UploadController {
         int safeQuantity = quantity == null || quantity < 1 ? 1 : quantity;
         BigDecimal estimatedPrice = calculateEstimatedPrice(file.getSize(), normalizedMaterial, safeQuantity);
 
+        // Auto-link to registered user if email matches
+        Long linkedUserId = null;
+        if (email != null && !email.isBlank()) {
+            linkedUserId = userRepository.findByEmail(email.trim())
+                    .map(User::getId)
+                    .orElse(null);
+        }
+
         StlOrder stlOrder = StlOrder.builder()
                 .customerName(name == null ? "" : name)
                 .customerEmail(email == null ? "" : email)
@@ -72,6 +85,7 @@ public class UploadController {
                 .quantity(safeQuantity)
                 .estimatedPrice(estimatedPrice)
                 .status("PENDING_QUOTE")
+                .userId(linkedUserId)
                 .note(message == null ? "" : message)
                 .build();
 
