@@ -34,7 +34,7 @@ public class AuthControllerIntegrationTest {
     @Test
     void register_requires_email() {
         RegisterRequest req = new RegisterRequest();
-        req.setPassword("pass123");
+        req.setPassword("Pass@1234");
         req.setFullName("User One");
         // missing email
 
@@ -45,15 +45,16 @@ public class AuthControllerIntegrationTest {
     @Test
     void register_duplicate_email_fails(){
         RegisterRequest r1 = new RegisterRequest();
-        r1.setEmail("u2@example.com");
-        r1.setPassword("pass123");
-        r1.setFullName("User Two");
+        // Use a unique email that won't clash with DataSeeder's seeded users.
+        r1.setEmail("u_unique@example.com");
+        r1.setPassword("Pass@1234");
+        r1.setFullName("User Unique");
         ResponseEntity<String> r1resp = restTemplate.postForEntity("/api/auth/register", new HttpEntity<>(r1), String.class);
         assertThat(r1resp.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         RegisterRequest r2 = new RegisterRequest();
-        r2.setEmail("u2@example.com");
-        r2.setPassword("pass123");
+        r2.setEmail("u_unique@example.com");
+        r2.setPassword("Pass@1234");
         r2.setFullName("User Three");
         ResponseEntity<String> r2resp = restTemplate.postForEntity("/api/auth/register", new HttpEntity<>(r2), String.class);
         assertThat(r2resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
