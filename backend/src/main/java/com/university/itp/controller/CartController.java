@@ -25,8 +25,8 @@ public class CartController {
     @PostMapping
     public ResponseEntity<?> addToCart(Authentication auth, @RequestBody Map<String, Object> req){
         try {
-            Long productId = ((Number) req.get("productId")).longValue();
-            int quantity = req.containsKey("quantity") ? ((Number) req.get("quantity")).intValue() : 1;
+            Long productId = Long.valueOf(req.get("productId").toString());
+            int quantity = req.containsKey("quantity") ? Integer.parseInt(req.get("quantity").toString()) : 1;
             
             CartItemDTO saved = cartService.addToCart(auth.getName(), productId, quantity);
             
@@ -43,7 +43,7 @@ public class CartController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Map<String, Object> req, Authentication auth){
         try {
-            int quantity = ((Number) req.get("quantity")).intValue();
+            int quantity = Integer.parseInt(req.get("quantity").toString());
             CartItemDTO updated = cartService.updateCartItem(auth.getName(), id, quantity);
             
             return ResponseEntity.ok(Map.of(

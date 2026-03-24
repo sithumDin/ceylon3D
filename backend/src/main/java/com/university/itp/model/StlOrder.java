@@ -23,7 +23,11 @@ public class StlOrder {
 
     private String customerEmail;
 
+    private String customerEmail2;
+
     private String phone;
+
+    private String address;
 
     private String fileName;
 

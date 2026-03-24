@@ -77,7 +77,7 @@ export function CartProvider({ children }) {
       await loadCart();
       toast.success("Added to cart!");
     } catch (err) {
-      console.error("Failed to add to cart (API):", err);
+      console.error("Failed to add to cart (API) Details:", err, err.stack);
       toast.error(err.message || "Failed to add to cart. Please try again.");
       throw err;
     }

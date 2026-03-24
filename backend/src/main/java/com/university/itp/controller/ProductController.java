@@ -1,49 +1,144 @@
 package com.university.itp.controller;
 
-import com.university.itp.dto.ProductDTO;
-import com.university.itp.service.FileStorageService;
-import com.university.itp.service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.university.itp.model.Product;
+import com.university.itp.repository.ProductRepository;
+import com.university.itp.service.ProductService;
+
+/**
+ * ProductController - REST API for Shop Product Management
+ * 
+ * Handles all HTTP requests related to product operations:
+ * - Listing and retrieving products
+ * - Creating products with image uploads
+ * - Updating product details and images
+ * - Deleting products with cascade cleanup
+ * - Serving uploaded product images
+ * 
+ * Admin-only operations require @PreAuthorize("hasRole('ROLE_ADMIN')")
+ * Public endpoints: GET /api/products, GET /api/products/{id}, GET /api/products/images/{filename}
+ */
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
+    // # === SECTION: Configuration and Dependency Injection ===
+    
+    // Directory where product images are temporarily stored
+    private static final Path UPLOAD_DIR = Path.of(System.getProperty("java.io.tmpdir"), "ceylon3d-product-images");
+
+    // Repository for direct database access
+    @Autowired
+    private ProductRepository productRepository;
+
+    // Service layer for business logic (especially for cascade deletion)
     @Autowired
     private ProductService productService;
 
-    @Autowired
-    private FileStorageService fileStorageService;
+    // # === SECTION: Product Retrieval (Read Operations) ===
 
+    /**
+     * Retrieve all products from the database
+     * 
+     * HTTP: GET /api/products
+     * Public endpoint - no authentication required
+     * 
+     * @return List of all Product objects with their details
+     * 
+     * Logic:
+     * - Queries the database to fetch ALL products
+     * - Returns products in JSON format to the frontend
+     * - Used by shop page to display product catalog
+     */
     @GetMapping
-    public ResponseEntity<List<ProductDTO>> list(){
-        return ResponseEntity.ok(productService.getAllProducts());
+    public List<Product> list(){
+        // Fetch all products from database and return as REST response
+        return productRepository.findAll();
     }
 
+    /**
+     * Retrieve a single product by its ID
+     * 
+     * HTTP: GET /api/products/{id}
+     * Public endpoint - no authentication required
+     * 
+     * @param id - The unique product identifier (primary key)
+     * @return ResponseEntity containing Product if found, 404 Not Found if missing
+     * 
+     * Logic:
+     * - Searches database for product with matching ID
+     * - If found: returns product in 200 OK response
+     * - If not found: returns 404 Not Found response
+     * - Used when user clicks on a product to view details
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDTO> get(@PathVariable Long id){
-        try {
-            return ResponseEntity.ok(productService.getProductById(id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Product> get(@PathVariable Long id){
+        // Try to find product by ID, return it if exists, else return 404 Not Found
+        return productRepository.findById(id)
+                .map(ResponseEntity::ok)  // If product exists, wrap it in 200 OK response
+                .orElse(ResponseEntity.notFound().build());  // If not found, return 404
     }
 
+    // # === SECTION: Product Creation (Admin Only) ===
+
+    /**
+     * Create a new product with optional image upload
+     * 
+     * HTTP: POST /api/products (multipart/form-data)
+     * Requires: ROLE_ADMIN
+     * 
+     * @param name - Product name (required)
+     * @param description - Product description (required)
+     * @param price - Product price in LKR (required)
+     * @param stock - Initial stock quantity (required)
+     * @param category - Product category like "Art & Decor" (optional)
+     * @param image - Product image file upload (optional)
+     * @return ResponseEntity with created Product object
+     * @throws IOException if image file operations fail
+     * 
+     * Logic Flow:
+     * STEP 1: Handle image upload if provided
+     *   - Check if image file exists and is not empty
+     *   - Create upload directory if it doesn't exist
+     *   - Generate new UUID-based filename (ensures uniqueness)
+     *   - Save image to disk
+     *   - Store image path in imagePath variable
+     * 
+     * STEP 2: Create Product object
+     *   - Build new Product with all provided details
+     *   - Set imagePath from STEP 1 (or null if no image)
+     * 
+     * STEP 3: Save and return
+     *   - Save product to database
+     *   - Return created product to client
+     */
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductDTO> createWithImage(
+    public ResponseEntity<?> createWithImage(
             @RequestParam("name") String name,
             @RequestParam("description") String description,
             @RequestParam("price") BigDecimal price,
@@ -51,27 +146,117 @@ public class ProductController {
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "image", required = false) MultipartFile image
     ) throws IOException {
-        ProductDTO productDTO = productService.createProduct(name, description, price, stock, category, image);
-        return ResponseEntity.ok(productDTO);
-    }
-
-    /** Serve uploaded product images */
-    @GetMapping("/images/{filename}")
-    public ResponseEntity<Resource> serveImage(@PathVariable String filename) throws IOException {
-        Resource resource = fileStorageService.loadFileAsResource(filename);
-        if (resource == null) {
-            return ResponseEntity.notFound().build();
+        // STEP 1: Process image upload if client provided an image file
+        String imagePath = null;
+        if (image != null && !image.isEmpty()) {
+            // Create upload directory in system temp folder if it doesn't exist
+            Files.createDirectories(UPLOAD_DIR);
+            
+            // Get original filename from uploaded file, default to "image.jpg" if null
+            String originalName = StringUtils.cleanPath(
+                    image.getOriginalFilename() == null ? "image.jpg" : image.getOriginalFilename());
+            
+            // Generate unique filename: UUID + original extension
+            // This prevents filename conflicts (e.g., two users uploading "logo.png")
+            String storedName = UUID.randomUUID() + "-" + originalName;
+            
+            // Define full path where image will be saved
+            Path target = UPLOAD_DIR.resolve(storedName);
+            
+            // Write image file to disk, replacing if it already exists
+            Files.copy(image.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            
+            // Store the URL path for frontend to retrieve image later
+            imagePath = "/api/products/images/" + storedName;
         }
 
-        Path filePath = fileStorageService.getFilePath(filename);
-        String contentType = Files.probeContentType(filePath);
-        if (contentType == null) contentType = "application/octet-stream";
+        // STEP 2: Create Product object with all details
+        Product product = Product.builder()
+                .name(name)
+                .description(description)
+                .price(price)
+                .stock(stock)
+                .category(category)
+                .imagePath(imagePath)  // May be null if no image uploaded
+                .build();
         
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .body(resource);
+        // STEP 3: Save product to database and return it
+        productRepository.save(product);
+        return ResponseEntity.ok(product);
     }
 
+    // # === SECTION: Image Serving (Public) ===
+
+    /**
+     * Serve product images from disk storage to frontend/browser
+     * 
+     * HTTP: GET /api/products/images/{filename}
+     * Public endpoint - no authentication required
+     * Allows browsers to display product images on shop pages
+     * 
+     * @param filename - Name of image file to retrieve (UUID-based format)
+     * @return ResponseEntity with image file resource and proper MIME type
+     * @throws IOException if file reading fails
+     * 
+     * Logic Flow:
+     * STEP 1: Construct full file path from filename parameter
+     * STEP 2: Check if file exists on disk
+     * STEP 3: If exists: determine MIME type (image/jpeg, image/png, etc.)
+     * STEP 4: Return file with appropriate content-type header
+     * STEP 5: If not exists: return 404 Not Found
+     */
+    @GetMapping("/images/{filename}")
+    public ResponseEntity<Resource> serveImage(@PathVariable String filename) throws IOException {
+        // STEP 1: Build full path to the image file
+        Path filePath = UPLOAD_DIR.resolve(filename);
+        
+        // STEP 2: Check if file actually exists on disk (security check)
+        if (!Files.exists(filePath)) {
+            // File not found - return 404 Not Found response
+            return ResponseEntity.notFound().build();
+        }
+        
+        // STEP 3: Create a Resource object pointing to the file (Spring can serve this)
+        Resource resource = new UrlResource(filePath.toUri());
+        
+        // STEP 4: Automatically detect the MIME type from file content
+        // Examples: image/jpeg, image/png, image/webp, etc.
+        String contentType = Files.probeContentType(filePath);
+        // If MIME type cannot be detected, default to generic binary type
+        if (contentType == null) contentType = "application/octet-stream";
+        
+        // STEP 5: Return file with proper headers for browser to render as image
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))  // Set correct MIME type
+                .body(resource);  // Send file content to browser
+    }
+
+    // # === SECTION: Product Update (Admin Only) ===
+
+    /**
+     * Update an existing product's details and optionally replace its image
+     * 
+     * HTTP: PUT /api/products/{id} (multipart/form-data)
+     * Requires: ROLE_ADMIN
+     * 
+     * @param id - Product ID to update
+     * @param name - Updated product name
+     * @param description - Updated product description
+     * @param price - Updated product price
+     * @param stock - Updated stock quantity
+     * @param category - Updated product category (optional)
+     * @param image - New product image file (optional - old image kept if not provided)
+     * @return ResponseEntity with updated Product, or 404 if product not found
+     * @throws IOException if image upload fails
+     * 
+     * Logic Flow:
+     * STEP 1: Find product in database by ID
+     * STEP 2: If found: update all fields with new values
+     * STEP 3: If new image provided: process and save it
+     * STEP 4: Save updated product to database
+     * STEP 5: Return updated product
+     * STEP 6: If product not found: return 404
+     */
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
@@ -83,22 +268,103 @@ public class ProductController {
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "image", required = false) MultipartFile image
     ) throws IOException {
-        try {
-            ProductDTO updatedProduct = productService.updateProduct(id, name, description, price, stock, category, image);
-            return ResponseEntity.ok(updatedProduct);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        // STEP 1: Try to find the product - if not found, return 404
+        return productRepository.findById(id).map(p -> {
+            // STEP 2: Update basic product information
+            p.setName(name);
+            p.setDescription(description);
+            p.setPrice(price);
+            p.setStock(stock);
+            p.setCategory(category);
+            
+            // STEP 3: Handle optional image update
+            if (image != null && !image.isEmpty()) {
+                try {
+                    // Ensure upload directory exists
+                    Files.createDirectories(UPLOAD_DIR);
+                    
+                    // Clean up original filename
+                    String originalName = StringUtils.cleanPath(
+                            image.getOriginalFilename() == null ? "image.jpg" : image.getOriginalFilename());
+                    
+                    // Generate unique filename with UUID prefix
+                    String storedName = UUID.randomUUID() + "-" + originalName;
+                    
+                    // Save new image to disk
+                    Path target = UPLOAD_DIR.resolve(storedName);
+                    Files.copy(image.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+                    
+                    // Update product with new image path
+                    p.setImagePath("/api/products/images/" + storedName);
+                } catch (IOException e) {
+                    // If image upload fails, wrap error and re-throw
+                    throw new RuntimeException("Failed to upload image", e);
+                }
+            }
+            // If no new image provided, existing imagePath is preserved automatically
+            
+            // STEP 4: Save updated product to database
+            productRepository.save(p);
+            
+            // STEP 5: Return updated product as response
+            return ResponseEntity.ok(p);
+        }).orElse(ResponseEntity.notFound().build());  // STEP 6: Product not found
     }
 
+    // # === SECTION: Product Deletion with Cascade Cleanup (Admin Only) ===
+
+    /**
+     * Delete a product using cascade deletion pattern to handle foreign key constraints
+     * 
+     * HTTP: DELETE /api/products/{id}
+     * Requires: ROLE_ADMIN
+     * 
+     * @param id - Product ID to delete
+     * @return 200 OK if deleted successfully, 404 if product not found
+     * 
+     * ⚠️ CRITICAL LOGIC - CASCADE DELETION PATTERN:
+     * 
+     * Why cascade deletion is needed:
+     * Products have foreign key relationships:
+     *   - CartItems reference products (active shopping carts)
+     *   - OrderItems reference products (order history)
+     * Database constraint: Cannot delete product if child records exist
+     * Direct deletion would fail with:
+     *   "Cannot delete parent row: foreign key constraint fails"
+     * 
+     * Solution - Three-step cascade deletion (handled in ProductService):
+     * STEP 1: Delete all CartItems referencing this product
+     *   → Removes customer shopping carts
+     *   → Unblocks product deletion
+     * 
+     * STEP 2: Nullify product references in OrderItems
+     *   → Sets order_items.product_id = NULL
+     *   → Preserves order history (order still exists)
+     *   → OrderItems store historical data (name, price, quantity)
+     * 
+     * STEP 3: Delete the product
+     *   → Now safe - no foreign key constraints remain
+     *   → Product removed from database
+     * 
+     * Transaction safety:
+     * - All 3 steps wrapped in @Transactional
+     * - If any step fails: entire operation rolls back
+     * - Database remains consistent
+     */
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id){
         try {
+            // Call ProductService which handles cascade deletion properly
+            // (See ProductService.deleteProduct() for detailed cascade logic)
             productService.deleteProduct(id);
+            
+            // Deletion successful - return 200 OK
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
+            // Product not found with this ID
             return ResponseEntity.notFound().build();
         }
+        // Any database errors will propagate and return 500 Internal Server Error
     }
 }

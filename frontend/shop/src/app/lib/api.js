@@ -25,7 +25,7 @@ async function postJson(path, body) {
 
 	if (!response.ok) {
 		const errorText = await response.text();
-		throw new Error(errorText || "Request failed");
+		throw new Error(errorText || `Request failed with status ${response.status}`);
 	}
 
 	return (await response.json());
@@ -38,9 +38,15 @@ async function authJson(path, options = {}) {
 		body: options.body ? JSON.stringify(options.body) : undefined,
 	});
 
+	if (response.status === 401 || response.status === 403) {
+		localStorage.removeItem("token");
+		window.dispatchEvent(new Event("auth-change"));
+		throw new Error("Session expired. Please log in again.");
+	}
+
 	if (!response.ok) {
 		const errorText = await response.text();
-		throw new Error(errorText || "Request failed");
+		throw new Error(errorText || `Request failed with status ${response.status}`);
 	}
 
 	if (response.status === 204) {

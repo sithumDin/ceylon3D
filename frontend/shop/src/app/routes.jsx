@@ -8,6 +8,7 @@ import { SellerProfile } from "./pages/SellerProfile";
 import { MyAccount } from "./pages/MyAccount";
 import { NotFound } from "./pages/NotFound";
 import { AdminDashboard } from "./pages/AdminDashboard";
+import { STLUpload } from "./pages/STLUpload";
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: "seller/:id", Component: SellerProfile },
       { path: "account", Component: MyAccount },
       { path: "admin", Component: AdminDashboard },
+      { path: "upload", Component: STLUpload },
       { path: "*", Component: NotFound },
     ],
   },

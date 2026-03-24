@@ -16,7 +16,9 @@ public class StlOrderDTO {
     private Long id;
     private String customerName;
     private String customerEmail;
+    private String customerEmail2;
     private String phone;
+    private String address;
     private String fileName;
     private Long fileSizeBytes;
     private String material;

@@ -1,17 +1,23 @@
 package com.university.itp.service;
 
-import com.university.itp.dto.ProductDTO;
-import com.university.itp.mapper.ProductMapper;
-import com.university.itp.model.Product;
-import com.university.itp.repository.ProductRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.university.itp.dto.ProductDTO;
+import com.university.itp.mapper.ProductMapper;
+import com.university.itp.model.Product;
+import com.university.itp.repository.CartItemRepository;
+import com.university.itp.repository.OrderRepository;
+import com.university.itp.repository.ProductRepository;
+
+import jakarta.persistence.EntityManager;
 
 @Service
 public class ProductService {
@@ -24,6 +30,15 @@ public class ProductService {
 
     @Autowired
     private FileStorageService fileStorageService;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     public List<ProductDTO> getAllProducts() {
         return productRepository.findAll().stream()
@@ -72,9 +87,22 @@ public class ProductService {
         return productMapper.toDTO(updatedProduct);
     }
 
+    @Transactional
     public void deleteProduct(Long id) {
+        // Find product or throw error
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
+        
+        // Step 1: Delete all cart items referencing this product (required due to foreign key constraint)
+        cartItemRepository.deleteAllByProduct(product);
+        entityManager.flush(); // Ensure delete is committed to DB
+        
+        // Step 2: Nullify product references in order items (preserves order history)
+        orderRepository.nullifyProductInOrderItems(product);
+        entityManager.flush(); // Ensure update is committed to DB
+        
+        // Step 3: Safe to delete product (no foreign key constraints remain)
         productRepository.delete(product);
+        entityManager.flush(); // Ensure delete is committed to DB
     }
 }
