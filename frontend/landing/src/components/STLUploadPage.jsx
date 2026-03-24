@@ -113,8 +113,26 @@ export function STLUploadPage() {
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Order submission failed');
+        const clone = response.clone();
+        let errorMessage = `Order submission failed (${response.status})`;
+
+        try {
+          const json = await clone.json();
+          if (json && json.message) {
+            errorMessage = `Order submission failed (${response.status}): ${json.message}`;
+          }
+        } catch {
+          try {
+            const text = await clone.text();
+            if (text) {
+              errorMessage = `Order submission failed (${response.status}): ${text}`;
+            }
+          } catch (innerErr) {
+            console.error('Failed to parse error body', innerErr);
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -180,13 +198,13 @@ export function STLUploadPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={resetForm}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 hover:shadow-lg active:scale-95 shadow-md"
             >
               Submit Another Order
             </button>
             <button
               onClick={goHome}
-              className="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-all"
+              className="px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 hover:shadow-md active:scale-95"
             >
               Back to Home
             </button>
@@ -203,7 +221,7 @@ export function STLUploadPage() {
         {/* Header */}
         <button
           onClick={goHome}
-          className="mb-6 inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors text-sm"
+          className="mb-6 inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-all duration-200 text-sm font-medium hover:gap-3"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Home
@@ -295,7 +313,7 @@ export function STLUploadPage() {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleFileInputClick(); }}
-                        className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                        className="text-sm px-4 py-2 rounded-lg border border-blue-200 text-blue-600 bg-blue-50/50 hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 transform hover:scale-105 font-medium shadow-sm hover:shadow-md"
                       >
                         Replace
                       </button>
@@ -306,7 +324,7 @@ export function STLUploadPage() {
                           setSelectedFile(null);
                           if (fileInputRef.current) fileInputRef.current.value = '';
                         }}
-                        className="text-sm px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition inline-flex items-center gap-1"
+                        className="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 bg-red-50/50 hover:bg-red-100 hover:border-red-400 transition-all duration-200 transform hover:scale-105 inline-flex items-center gap-1.5 font-medium shadow-sm hover:shadow-md"
                       >
                         <X className="w-3.5 h-3.5" /> Remove
                       </button>
@@ -340,16 +358,16 @@ export function STLUploadPage() {
                       type="button"
                       key={mat.id}
                       onClick={() => setSelectedMaterial(mat.id)}
-                      className={`flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all ${
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105 ${
                         selectedMaterial === mat.id
-                          ? 'border-blue-500 bg-blue-50/50 shadow-sm'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100/50 shadow-lg ring-2 ring-blue-200/50 scale-105'
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50/50 shadow-sm hover:shadow-md'
                       }`}
                     >
-                      <span className="text-xl">{mat.icon}</span>
+                      <span className={`text-xl transition-all duration-200 ${selectedMaterial === mat.id ? 'scale-125' : ''}`}>{mat.icon}</span>
                       <div>
-                        <div className="font-semibold text-sm text-gray-900">{mat.label}</div>
-                        <div className="text-xs text-gray-500">{mat.desc}</div>
+                        <div className={`font-semibold text-sm transition-colors ${selectedMaterial === mat.id ? 'text-blue-900' : 'text-gray-900'}`}>{mat.label}</div>
+                        <div className={`text-xs transition-colors ${selectedMaterial === mat.id ? 'text-blue-600' : 'text-gray-500'}`}>{mat.desc}</div>
                       </div>
                     </button>
                   ))}
@@ -359,11 +377,11 @@ export function STLUploadPage() {
               {/* Quantity */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Quantity</label>
-                <div className="inline-flex items-center bg-gray-100 rounded-xl overflow-hidden">
+                <div className="inline-flex items-center bg-gradient-to-r from-gray-100 to-gray-50 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
                   <button
                     type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-11 h-11 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition font-bold text-lg"
+                    className="w-11 h-11 flex items-center justify-center text-gray-700 hover:bg-gray-200 active:bg-gray-300 transition-all duration-200 font-bold text-lg hover:scale-110 active:scale-95"
                   >
                     −
                   </button>
@@ -372,12 +390,12 @@ export function STLUploadPage() {
                     min={1}
                     value={quantity}
                     onChange={e => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                    className="w-14 h-11 text-center bg-white border-x border-gray-200 font-semibold text-gray-900 focus:outline-none"
+                    className="w-14 h-11 text-center bg-white border-x border-gray-300 font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
                   />
                   <button
                     type="button"
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-11 h-11 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition font-bold text-lg"
+                    className="w-11 h-11 flex items-center justify-center text-gray-700 hover:bg-gray-200 active:bg-gray-300 transition-all duration-200 font-bold text-lg hover:scale-110 active:scale-95"
                   >
                     +
                   </button>
@@ -537,9 +555,9 @@ export function STLUploadPage() {
               <button
                 type="button"
                 onClick={goBack}
-                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 transition"
+                className="px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 hover:shadow-md active:scale-95"
               >
-                Back
+                ← Back
               </button>
             ) : (
               <div />
@@ -549,7 +567,7 @@ export function STLUploadPage() {
               <button
                 type="button"
                 onClick={goNext}
-                className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-sm hover:from-blue-700 hover:to-purple-700 transition shadow-md"
+                className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-sm hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 hover:shadow-lg active:scale-95 shadow-md"
               >
                 Continue →
               </button>
@@ -558,10 +576,10 @@ export function STLUploadPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className={`px-8 py-3 rounded-xl font-semibold text-sm transition shadow-md flex items-center gap-2 ${
+                className={`px-8 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
                   isSubmitting
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed shadow-md'
+                    : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transform hover:scale-105 hover:shadow-lg active:scale-95 shadow-md'
                 }`}
               >
                 {isSubmitting ? (
@@ -570,7 +588,10 @@ export function STLUploadPage() {
                     Submitting...
                   </>
                 ) : (
-                  'Submit Order →'
+                  <>
+                    <Package className="w-4 h-4" />
+                    Submit Order →
+                  </>
                 )}
               </button>
             )}

@@ -9,10 +9,17 @@ import photo5 from '../3Dphotos/3d5.png';
 const photos = [photo1, photo2, photo3, photo4, photo5];
 
 const SHOP_URL = import.meta.env.VITE_SHOP_URL || 'http://localhost:5175/browse';
+const SHOP_UPLOAD_URL = import.meta.env.VITE_SHOP_UPLOAD_URL || 'http://localhost:5175/upload';
 
 export function Hero() {
-  const goToCalculator = () => {
-    window.location.href = '/upload';
+  const goToShopUpload = () => {
+    window.location.href = SHOP_UPLOAD_URL;
+  };
+  const scrollToContact = () => {
+    const element = document.getElementById('contact');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const scrollToPortfolio = () => {
@@ -71,7 +78,7 @@ export function Hero() {
           </h1>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
-              onClick={goToCalculator}
+              onClick={goToShopUpload}
               className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-4 rounded-full hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-lg group shadow-lg hover:shadow-2xl hover:shadow-purple-500/30"
             >
               Send your STL

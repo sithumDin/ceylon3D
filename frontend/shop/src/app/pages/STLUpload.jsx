@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from "react-router";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const SHOP_BASE_URL = import.meta.env.VITE_SHOP_BASE_URL || 'http://localhost:5179';
 
 const MATERIALS = [
   { id: 'PLA', label: 'PLA', desc: 'Standard, great finish', icon: '🟢' },
@@ -112,7 +113,10 @@ export function STLUpload() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      setError('Please attach a STL/PDF/JPG file before submitting.');
+      return;
+    }
 
     const payload = new FormData();
     payload.append('file', selectedFile);
@@ -129,21 +133,43 @@ export function STLUpload() {
       setIsSubmitting(true);
       setError('');
 
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const response = await fetch(`${API_BASE_URL}/api/uploads/stl`, {
         method: 'POST',
+        headers,
         body: payload,
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Order submission failed');
+        const clone = response.clone();
+        let errorMessage = `Order submission failed (${response.status})`;
+
+        try {
+          const json = await clone.json();
+          if (json && json.message) {
+            errorMessage = `Order submission failed (${response.status}): ${json.message}`;
+          }
+        } catch {
+          try {
+            const text = await clone.text();
+            if (text) {
+              errorMessage = `Order submission failed (${response.status}): ${text}`;
+            }
+          } catch (innerErr) {
+            console.error('Failed to parse error body', innerErr);
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       setOrderResult(data);
     } catch (err) {
-      console.error(err);
+      console.error('STL order submit failed:', err);
       setError(err.message || 'Something went wrong. Please try again.');
+      return;
     } finally {
       setIsSubmitting(false);
     }

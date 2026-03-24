@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams, useNavigate } from "react-router";
 import { ProductCard } from "../components/ProductCard";
 import { categories } from "../data/mockData";
 import { getAllProducts } from "../lib/api";
@@ -16,8 +16,16 @@ import {
 
 export function Browse() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const categoryParam = searchParams.get("category");
   const queryParam = searchParams.get("q");
+
+  // Redirect to upload page if custom orders category is selected
+  useEffect(() => {
+    if (categoryParam === "custom") {
+      navigate("/upload");
+    }
+  }, [categoryParam, navigate]);
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
