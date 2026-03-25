@@ -29,19 +29,7 @@ import com.university.itp.model.Product;
 import com.university.itp.repository.ProductRepository;
 import com.university.itp.service.ProductService;
 
-/**
- * ProductController - REST API for Shop Product Management
- * 
- * Handles all HTTP requests related to product operations:
- * - Listing and retrieving products
- * - Creating products with image uploads
- * - Updating product details and images
- * - Deleting products with cascade cleanup
- * - Serving uploaded product images
- * 
- * Admin-only operations require @PreAuthorize("hasRole('ROLE_ADMIN')")
- * Public endpoints: GET /api/products, GET /api/products/{id}, GET /api/products/images/{filename}
- */
+
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
@@ -61,19 +49,7 @@ public class ProductController {
 
     // # === SECTION: Product Retrieval (Read Operations) ===
 
-    /**
-     * Retrieve all products from the database
-     * 
-     * HTTP: GET /api/products
-     * Public endpoint - no authentication required
-     * 
-     * @return List of all Product objects with their details
-     * 
-     * Logic:
-     * - Queries the database to fetch ALL products
-     * - Returns products in JSON format to the frontend
-     * - Used by shop page to display product catalog
-     */
+    
     @GetMapping
     public List<Product> list(){
         // Fetch all products from database and return as REST response
@@ -96,7 +72,7 @@ public class ProductController {
      * - Used when user clicks on a product to view details
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Product> get(@PathVariable Long id){
+    public ResponseEntity<Product> get(@PathVariable("id") Long id){
         // Try to find product by ID, return it if exists, else return 404 Not Found
         return productRepository.findById(id)
                 .map(ResponseEntity::ok)  // If product exists, wrap it in 200 OK response
@@ -206,7 +182,7 @@ public class ProductController {
      * STEP 5: If not exists: return 404 Not Found
      */
     @GetMapping("/images/{filename}")
-    public ResponseEntity<Resource> serveImage(@PathVariable String filename) throws IOException {
+    public ResponseEntity<Resource> serveImage(@PathVariable("filename") String filename) throws IOException {
         // STEP 1: Build full path to the image file
         Path filePath = UPLOAD_DIR.resolve(filename);
         
@@ -260,7 +236,7 @@ public class ProductController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestParam("name") String name,
             @RequestParam("description") String description,
             @RequestParam("price") BigDecimal price,
@@ -353,7 +329,7 @@ public class ProductController {
      */
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id){
+    public ResponseEntity<?> delete(@PathVariable("id") Long id){
         try {
             // Call ProductService which handles cascade deletion properly
             // (See ProductService.deleteProduct() for detailed cascade logic)

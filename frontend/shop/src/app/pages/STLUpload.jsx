@@ -2,8 +2,7 @@ import { ArrowLeft, CheckCircle, FileText, Loader2, Package, Phone, Mail, Upload
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from "react-router";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const SHOP_BASE_URL = import.meta.env.VITE_SHOP_BASE_URL || 'http://localhost:5179';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const MATERIALS = [
   { id: 'PLA', label: 'PLA', desc: 'Standard, great finish', icon: '🟢' },
@@ -135,7 +134,7 @@ export function STLUpload() {
 
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const response = await fetch(`${API_BASE_URL}/api/uploads/stl`, {
+      const response = await fetch(`${API_BASE_URL}/uploads/stl`, {
         method: 'POST',
         headers,
         body: payload,

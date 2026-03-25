@@ -46,13 +46,15 @@ public class UploadController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "email2", required = false) String email2,
             @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam(value = "address", required = false) String address,
             @RequestParam(value = "message", required = false) String message,
             @RequestParam(value = "material", required = false) String material,
             @RequestParam(value = "quantity", required = false) Integer quantity
     ) {
-        logger.info("Received STL upload request: file={}, name={}, email={}, phone={}, material={}, quantity={}",
-                file != null ? file.getOriginalFilename() : "null", name, email, phone, material, quantity);
+        logger.info("Received STL upload request: file={}, name={}, email={}, phone={}, address={}, material={}, quantity={}",
+                file != null ? file.getOriginalFilename() : "null", name, email, phone, address, material, quantity);
 
         try {
             if (file == null || file.isEmpty()) {
@@ -93,7 +95,9 @@ public class UploadController {
             StlOrder stlOrder = StlOrder.builder()
                     .customerName(name == null ? "" : name)
                     .customerEmail(email == null ? "" : email)
+                    .customerEmail2(email2 == null ? "" : email2)
                     .phone(phone == null ? "" : phone)
+                    .address(address == null ? "" : address)
                     .fileName(storedFileName)
                     .fileSizeBytes(file.getSize())
                     .material(normalizedMaterial)
