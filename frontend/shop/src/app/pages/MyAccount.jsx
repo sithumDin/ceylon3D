@@ -104,7 +104,8 @@ export function MyAccount() {
     event.preventDefault();
     setLoading(true);
     try {
-      const data = await login(email, password);
+      const normalizedEmail = email.trim().toLowerCase();
+      const data = await login(normalizedEmail, password);
       localStorage.setItem("token", data.token);
       localStorage.setItem("authUser", JSON.stringify(data.user));
       window.dispatchEvent(new Event("auth-change"));
@@ -126,11 +127,12 @@ export function MyAccount() {
 
   const handleRegister = async (event) => {
     event.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
     if (!fullName.trim()) {
       toast.error("Full name is required");
       return;
     }
-    if (!email.trim()) {
+    if (!normalizedEmail) {
       toast.error("Email is required");
       return;
     }
@@ -148,7 +150,7 @@ export function MyAccount() {
     }
     setLoading(true);
     try {
-      const data = await register(fullName, email, password);
+      const data = await register(fullName, normalizedEmail, password);
       localStorage.setItem("token", data.token);
       localStorage.setItem("authUser", JSON.stringify(data.user));
       window.dispatchEvent(new Event("auth-change"));
@@ -184,6 +186,9 @@ export function MyAccount() {
                       className="w-full border rounded-md px-3 py-2"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       required
                     />
                   </div>
@@ -194,6 +199,9 @@ export function MyAccount() {
                       className="w-full border rounded-md px-3 py-2"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       required
                     />
                   </div>
@@ -224,6 +232,9 @@ export function MyAccount() {
                       className="w-full border rounded-md px-3 py-2"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       required
                     />
                   </div>
@@ -234,6 +245,9 @@ export function MyAccount() {
                       className="w-full border rounded-md px-3 py-2"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       required
                       minLength={8}
                     />
