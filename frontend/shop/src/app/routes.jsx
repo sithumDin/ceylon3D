@@ -9,20 +9,21 @@ import { MyAccount } from "./pages/MyAccount";
 import { NotFound } from "./pages/NotFound";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { STLUpload } from "./pages/STLUpload";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: Layout,
     children: [
-      { index: true, Component: Home },
-      { path: "browse", Component: Browse },
-      { path: "product/:id", Component: ProductDetail },
-      { path: "cart", Component: Cart },
-      { path: "seller/:id", Component: SellerProfile },
+      { index: true, element: <ProtectedRoute><Home /></ProtectedRoute> },
+      { path: "browse", element: <ProtectedRoute><Browse /></ProtectedRoute> },
+      { path: "product/:id", element: <ProtectedRoute><ProductDetail /></ProtectedRoute> },
+      { path: "cart", element: <ProtectedRoute><Cart /></ProtectedRoute> },
+      { path: "seller/:id", element: <ProtectedRoute><SellerProfile /></ProtectedRoute> },
       { path: "account", Component: MyAccount },
-      { path: "admin", Component: AdminDashboard },
-      { path: "upload", Component: STLUpload },
+      { path: "admin", element: <ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute> },
+      { path: "upload", element: <ProtectedRoute><STLUpload /></ProtectedRoute> },
       { path: "*", Component: NotFound },
     ],
   },
