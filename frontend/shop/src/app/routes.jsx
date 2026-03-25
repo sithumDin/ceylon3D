@@ -16,7 +16,7 @@ export const router = createBrowserRouter([
     path: "/",
     Component: Layout,
     children: [
-      { index: true, element: <ProtectedRoute><Home /></ProtectedRoute> },
+      { index: true, element: <Home /> },
       { path: "browse", element: <ProtectedRoute><Browse /></ProtectedRoute> },
       { path: "product/:id", element: <ProtectedRoute><ProductDetail /></ProtectedRoute> },
       { path: "cart", element: <ProtectedRoute><Cart /></ProtectedRoute> },
