@@ -13,7 +13,7 @@ export function ProtectedRoute({ children, adminOnly = false }) {
   if (adminOnly) {
     try {
       const user = JSON.parse(authUserStr);
-      if (user.role !== "ADMIN") {
+      if (!user.roles || !user.roles.includes("ROLE_ADMIN")) {
         return <Navigate to="/" replace />;
       }
     } catch {

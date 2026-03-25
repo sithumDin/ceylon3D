@@ -1131,7 +1131,9 @@ export function AdminDashboard() {
                 <span className="text-sm font-medium text-gray-700">Support Structures (+ LKR 100.00)</span>
               </label>
 
-              <Button onClick={onPricingCalculate} className="w-full">Calculate Price</Button>
+              <Button onClick={onPricingCalculate} className="w-full bg-blue-600 hover:bg-blue-700">
+                Calculate Price
+              </Button>
 
               {pricingResult && (
                 <div className="bg-gray-50 border rounded-md p-4 space-y-2">

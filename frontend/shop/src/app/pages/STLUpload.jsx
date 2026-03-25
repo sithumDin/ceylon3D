@@ -2,7 +2,11 @@ import { ArrowLeft, CheckCircle, FileText, Loader2, Package, Phone, Mail, Upload
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from "react-router";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
+const STL_UPLOAD_URL = API_BASE_URL.endsWith('/api')
+  ? `${API_BASE_URL}/uploads/stl`
+  : `${API_BASE_URL}/api/uploads/stl`;
 
 const MATERIALS = [
   { id: 'PLA', label: 'PLA', desc: 'Standard, great finish', icon: '🟢' },
@@ -12,6 +16,9 @@ const MATERIALS = [
 ];
 
 const STEPS = ['Upload File', 'Your Details', 'Review & Submit'];
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?[0-9\s()\-]{7,20}$/;
 
 export function STLUpload() {
   const navigate = useNavigate();
@@ -93,6 +100,13 @@ export function STLUpload() {
   const canProceedStep0 = selectedFile && selectedMaterial && quantity > 0;
   const canProceedStep1 = customerName.trim() && customerEmail.trim() && customerPhone.trim() && customerAddress.trim();
 
+  const isValidEmail = (email) => EMAIL_REGEX.test(email.trim());
+  const isValidPhone = (phone) => {
+    const raw = phone.trim();
+    const digitsOnly = raw.replace(/\D/g, '');
+    return PHONE_REGEX.test(raw) && digitsOnly.length >= 10 && digitsOnly.length <= 15;
+  };
+
   const goNext = () => {
     if (step === 0 && !canProceedStep0) {
       setError('Please upload a file and select material.');
@@ -100,6 +114,14 @@ export function STLUpload() {
     }
     if (step === 1 && !canProceedStep1) {
       setError('Please fill in your valid name, email, phone number, and address.');
+      return;
+    }
+    if (step === 1 && !isValidEmail(customerEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (step === 1 && !isValidPhone(customerPhone)) {
+      setError('Please enter a valid phone number (10 to 15 digits).');
       return;
     }
     setError('');
@@ -114,6 +136,14 @@ export function STLUpload() {
   const handleSubmit = async () => {
     if (!selectedFile) {
       setError('Please attach a STL/PDF/JPG file before submitting.');
+      return;
+    }
+    if (!isValidEmail(customerEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!isValidPhone(customerPhone)) {
+      setError('Please enter a valid phone number (10 to 15 digits).');
       return;
     }
 
@@ -134,7 +164,7 @@ export function STLUpload() {
 
       const token = localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const response = await fetch(`${API_BASE_URL}/uploads/stl`, {
+      const response = await fetch(STL_UPLOAD_URL, {
         method: 'POST',
         headers,
         body: payload,
