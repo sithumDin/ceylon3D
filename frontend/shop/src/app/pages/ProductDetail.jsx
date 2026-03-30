@@ -4,13 +4,12 @@ import { Button } from "../components/ui/button";
 import { Separator } from "../components/ui/separator";
 import { TruckIcon, Shield, Package, ArrowLeft } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+import { API_BASE_URL, API_ROOT_URL } from "../lib/config";
 
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
   if (imagePath.startsWith("/api")) {
-    return API_BASE_URL.replace("/api", "") + imagePath;
+    return `${API_ROOT_URL}${imagePath}`;
   }
   return imagePath;
 }

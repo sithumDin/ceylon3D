@@ -1,13 +1,14 @@
 package com.university.itp.model;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Entity
-@Table(name = "products")
+@Document(collection = "products")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,12 +16,11 @@ import java.time.Instant;
 @Builder
 public class Product {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Field("description")
     private String description;
 
     private BigDecimal price;
@@ -31,10 +31,6 @@ public class Product {
 
     private String category;
 
-    private Instant createdAt;
-
-    @PrePersist
-    public void prePersist(){
-        this.createdAt = Instant.now();
-    }
+    @Builder.Default
+    private Instant createdAt = Instant.now();
 }

@@ -8,18 +8,15 @@ import com.university.itp.model.OrderEntity;
 import com.university.itp.model.OrderItem;
 import com.university.itp.model.User;
 import com.university.itp.repository.OrderRepository;
-import com.university.itp.repository.ProductRepository;
 import com.university.itp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class OrderService {
 
     @Autowired
@@ -27,9 +24,6 @@ public class OrderService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private ProductRepository productRepository;
 
     @Autowired
     private OrderMapper orderMapper;
@@ -53,10 +47,7 @@ public class OrderService {
             oi.setProductName(dto.getProductName());
             oi.setQuantity(dto.getQuantity());
             oi.setUnitPrice(dto.getUnitPrice());
-            oi.setOrder(order);
-            if (dto.getProductId() != null) {
-                productRepository.findById(dto.getProductId()).ifPresent(oi::setProduct);
-            }
+            oi.setProductId(dto.getProductId());
             return oi;
         }).collect(Collectors.toList());
 
@@ -84,14 +75,14 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
-    public OrderDTO updateOrderStatus(Long id, String status) {
+    public OrderDTO updateOrderStatus(String id, String status) {
         OrderEntity order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
         order.setStatus(status);
         return orderMapper.toDTO(orderRepository.save(order));
     }
 
-    public OrderDTO updateTrackingNumber(Long id, String trackingNumber) {
+    public OrderDTO updateTrackingNumber(String id, String trackingNumber) {
         OrderEntity order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
         order.setTrackingNumber(trackingNumber);

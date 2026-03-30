@@ -35,7 +35,7 @@ public class StlOrderController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/admin/{id}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable("id") Long id, @RequestBody Map<String, String> req) {
+    public ResponseEntity<?> updateStatus(@PathVariable("id") String id, @RequestBody Map<String, String> req) {
         try {
             StlOrderDTO updatedOrder = stlOrderService.updateStatus(id, req.get("status"));
             return ResponseEntity.ok(updatedOrder);
@@ -46,7 +46,7 @@ public class StlOrderController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/admin/{id}/price")
-    public ResponseEntity<?> updatePrice(@PathVariable("id") Long id, @RequestBody Map<String, Object> req) {
+    public ResponseEntity<?> updatePrice(@PathVariable("id") String id, @RequestBody Map<String, Object> req) {
         try {
             StlOrderDTO updatedOrder = stlOrderService.updatePrice(id, req);
             return ResponseEntity.ok(updatedOrder);
@@ -56,7 +56,7 @@ public class StlOrderController {
     }
 
     @PutMapping("/my/{id}")
-    public ResponseEntity<?> updateMyOrder(@PathVariable("id") Long id, @RequestBody Map<String, Object> req, Authentication auth) {
+    public ResponseEntity<?> updateMyOrder(@PathVariable("id") String id, @RequestBody Map<String, Object> req, Authentication auth) {
         try {
             StlOrderDTO updatedOrder = stlOrderService.updateMyOrder(auth.getName(), id, req);
             return ResponseEntity.ok(updatedOrder);
@@ -70,7 +70,7 @@ public class StlOrderController {
     }
 
     @PutMapping("/my/{id}/confirm")
-    public ResponseEntity<?> confirmOrder(@PathVariable("id") Long id, Authentication auth) {
+    public ResponseEntity<?> confirmOrder(@PathVariable("id") String id, Authentication auth) {
         try {
             StlOrderDTO confirmedOrder = stlOrderService.confirmOrder(auth.getName(), id);
             return ResponseEntity.ok(confirmedOrder);
@@ -85,7 +85,7 @@ public class StlOrderController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/admin/{id}")
-    public ResponseEntity<?> deleteStlOrder(@PathVariable("id") Long id) {
+    public ResponseEntity<?> deleteStlOrder(@PathVariable("id") String id) {
         try {
             stlOrderService.deleteStlOrder(id);
             return ResponseEntity.ok(Map.of("message", "STL order deleted"));
@@ -96,7 +96,7 @@ public class StlOrderController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping("/admin/{id}/download")
-    public ResponseEntity<Resource> downloadFile(@PathVariable("id") Long id) {
+    public ResponseEntity<Resource> downloadFile(@PathVariable("id") String id) {
         try {
             Resource resource = stlOrderService.downloadFile(id);
             if (resource == null) {

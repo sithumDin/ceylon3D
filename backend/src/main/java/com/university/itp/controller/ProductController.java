@@ -72,7 +72,7 @@ public class ProductController {
      * - Used when user clicks on a product to view details
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Product> get(@PathVariable("id") Long id){
+    public ResponseEntity<Product> get(@PathVariable("id") String id){
         // Try to find product by ID, return it if exists, else return 404 Not Found
         return productRepository.findById(id)
                 .map(ResponseEntity::ok)  // If product exists, wrap it in 200 OK response
@@ -236,7 +236,7 @@ public class ProductController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             @RequestParam("name") String name,
             @RequestParam("description") String description,
             @RequestParam("price") BigDecimal price,
@@ -329,7 +329,7 @@ public class ProductController {
      */
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable("id") Long id){
+    public ResponseEntity<?> delete(@PathVariable("id") String id){
         try {
             // Call ProductService which handles cascade deletion properly
             // (See ProductService.deleteProduct() for detailed cascade logic)

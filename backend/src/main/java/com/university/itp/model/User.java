@@ -1,14 +1,15 @@
 package com.university.itp.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 import java.util.Set;
 
-@Entity
-@Table(name = "users")
+@Document(collection = "users")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,26 +18,18 @@ import java.util.Set;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(unique = true, nullable = false)
+    @Indexed(unique = true)
     private String email;
 
     @JsonIgnore
-    @Column(nullable = false)
     private String password;
 
     private String fullName;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
     private Set<Role> roles;
 
-    private Instant createdAt;
-
-    @PrePersist
-    public void prePersist(){
-        this.createdAt = Instant.now();
-    }
+    @Builder.Default
+    private Instant createdAt = Instant.now();
 }

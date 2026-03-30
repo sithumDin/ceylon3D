@@ -1,13 +1,14 @@
 package com.university.itp.model;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Entity
-@Table(name = "stl_orders")
+@Document(collection = "stl_orders")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,8 +17,7 @@ import java.time.Instant;
 public class StlOrder {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     private String customerName;
 
@@ -47,21 +47,15 @@ public class StlOrder {
 
     private Boolean supportStructures;
 
-    private String status;
-
     /** Linked user account (null if uploaded anonymously with no matching user) */
-    private Long userId;
+    private String userId;
 
-    @Column(columnDefinition = "TEXT")
+    @Field("note")
     private String note;
 
-    private Instant createdAt;
+    @Builder.Default
+    private Instant createdAt = Instant.now();
 
-    @PrePersist
-    public void prePersist() {
-        this.createdAt = Instant.now();
-        if (this.status == null || this.status.isBlank()) {
-            this.status = "PENDING_QUOTE";
-        }
-    }
+    @Builder.Default
+    private String status = "PENDING_QUOTE";
 }

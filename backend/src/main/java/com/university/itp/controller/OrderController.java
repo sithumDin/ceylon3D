@@ -46,7 +46,7 @@ public class OrderController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/admin/{id}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable("id") Long id, @RequestBody java.util.Map<String, String> req){
+    public ResponseEntity<?> updateStatus(@PathVariable("id") String id, @RequestBody java.util.Map<String, String> req){
         try {
             OrderDTO orderDTO = orderService.updateOrderStatus(id, req.get("status"));
             return ResponseEntity.ok(orderDTO);
@@ -57,7 +57,7 @@ public class OrderController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/admin/{id}/tracking")
-    public ResponseEntity<?> updateTrackingNumber(@PathVariable("id") Long id, @RequestBody java.util.Map<String, String> req) {
+    public ResponseEntity<?> updateTrackingNumber(@PathVariable("id") String id, @RequestBody java.util.Map<String, String> req) {
         try {
             OrderDTO orderDTO = orderService.updateTrackingNumber(id, req.get("trackingNumber"));
             return ResponseEntity.ok(orderDTO);

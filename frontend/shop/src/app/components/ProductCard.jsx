@@ -2,8 +2,7 @@ import { Link } from "react-router";
 import { Star, TruckIcon } from "lucide-react";
 import { Card } from "./ui/card";
 import { categories } from "../data/mockData";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+import { API_ROOT_URL } from "../lib/config";
 
 function getImageUrl(product) {
   // Support both mock data (product.image) and API data (product.imagePath)
@@ -11,7 +10,7 @@ function getImageUrl(product) {
   if (!src) return null;
   // If it starts with /api, prefix with backend URL
   if (src.startsWith("/api")) {
-    return API_BASE_URL.replace("/api", "") + src;
+    return `${API_ROOT_URL}${src}`;
   }
   return src;
 }

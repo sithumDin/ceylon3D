@@ -1,13 +1,11 @@
 package com.university.itp.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
 
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "order_items")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,15 +13,9 @@ import java.math.BigDecimal;
 @Builder
 public class OrderItem {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @JsonIgnore
-    @ManyToOne(optional = false)
-    private OrderEntity order;
-
-    @ManyToOne(optional = true)
-    private Product product;
+    private String productId;
 
     private String productName;
 

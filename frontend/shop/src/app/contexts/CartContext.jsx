@@ -1,15 +1,14 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { getCart, addToCartApi, updateCartItem, removeCartItem, clearCartApi } from "../lib/api";
 import { toast } from "sonner";
+import { API_ROOT_URL } from "../lib/config";
 
 const CartContext = createContext(undefined);
 
 function getImageUrl(imagePath) {
   if (!imagePath) return "/placeholder.png";
   if (imagePath.startsWith("http")) return imagePath;
-  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
-  const root = base.replace(/\/api\/?$/, "");
-  return `${root}${imagePath}`;
+  return `${API_ROOT_URL}${imagePath}`;
 }
 
 export function CartProvider({ children }) {

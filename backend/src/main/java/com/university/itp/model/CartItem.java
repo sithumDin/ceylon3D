@@ -1,11 +1,12 @@
 package com.university.itp.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "cart_items")
+@Document(collection = "cart_items")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,18 +14,14 @@ import lombok.*;
 @Builder
 public class CartItem {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @JsonIgnore
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @DBRef
     private User user;
 
-    @ManyToOne(optional = false, fetch = FetchType.EAGER)
-    @JoinColumn(name = "product_id", nullable = false)
+    @DBRef
     private Product product;
 
-    @Column(nullable = false)
     private Integer quantity;
 }

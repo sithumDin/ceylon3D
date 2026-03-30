@@ -10,13 +10,11 @@ import com.university.itp.repository.ProductRepository;
 import com.university.itp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@Transactional
 public class CartService {
 
     @Autowired
@@ -56,13 +54,12 @@ public class CartService {
 
         if (!orphaned.isEmpty()) {
             cartItemRepository.deleteAll(orphaned);
-            cartItemRepository.flush();
         }
 
         return result;
     }
 
-    public CartItemDTO addToCart(String email, Long productId, int quantity) {
+    public CartItemDTO addToCart(String email, String productId, int quantity) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -74,14 +71,14 @@ public class CartService {
         if (existing.isPresent()) {
             CartItem item = existing.get();
             item.setQuantity(item.getQuantity() + quantity);
-            return cartItemMapper.toDTO(cartItemRepository.saveAndFlush(item));
+            return cartItemMapper.toDTO(cartItemRepository.save(item));
         }
 
         CartItem item = CartItem.builder().user(user).product(product).quantity(quantity).build();
-        return cartItemMapper.toDTO(cartItemRepository.saveAndFlush(item));
+        return cartItemMapper.toDTO(cartItemRepository.save(item));
     }
 
-    public CartItemDTO updateCartItem(String email, Long cartItemId, int quantity) {
+    public CartItemDTO updateCartItem(String email, String cartItemId, int quantity) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -93,10 +90,10 @@ public class CartService {
         }
 
         item.setQuantity(quantity);
-        return cartItemMapper.toDTO(cartItemRepository.saveAndFlush(item));
+        return cartItemMapper.toDTO(cartItemRepository.save(item));
     }
 
-    public void removeCartItem(String email, Long cartItemId) {
+    public void removeCartItem(String email, String cartItemId) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -108,13 +105,11 @@ public class CartService {
         }
 
         cartItemRepository.delete(item);
-        cartItemRepository.flush();
     }
 
     public void clearCart(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         cartItemRepository.deleteAllByUser(user);
-        cartItemRepository.flush();
     }
 }

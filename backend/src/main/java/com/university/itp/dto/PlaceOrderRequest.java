@@ -21,6 +21,6 @@ public class PlaceOrderRequest {
         private String productName;
         private Integer quantity;
         private BigDecimal unitPrice;
-        private Long productId; // optional – links to a DB product if it exists
+        private String productId; // optional – links to a DB product if it exists
     }
 }

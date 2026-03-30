@@ -25,7 +25,7 @@ public class CartController {
     @PostMapping
     public ResponseEntity<?> addToCart(Authentication auth, @RequestBody Map<String, Object> req){
         try {
-            Long productId = Long.valueOf(req.get("productId").toString());
+            String productId = req.get("productId").toString();
             int quantity = req.containsKey("quantity") ? Integer.parseInt(req.get("quantity").toString()) : 1;
             
             CartItemDTO saved = cartService.addToCart(auth.getName(), productId, quantity);
@@ -41,7 +41,7 @@ public class CartController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable("id") Long id, @RequestBody Map<String, Object> req, Authentication auth){
+    public ResponseEntity<?> update(@PathVariable("id") String id, @RequestBody Map<String, Object> req, Authentication auth){
         try {
             int quantity = Integer.parseInt(req.get("quantity").toString());
             CartItemDTO updated = cartService.updateCartItem(auth.getName(), id, quantity);
@@ -59,7 +59,7 @@ public class CartController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable("id") Long id, Authentication auth){
+    public ResponseEntity<?> remove(@PathVariable("id") String id, Authentication auth){
         try {
             cartService.removeCartItem(auth.getName(), id);
             return ResponseEntity.noContent().build();

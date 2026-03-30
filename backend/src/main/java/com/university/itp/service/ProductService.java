@@ -7,17 +7,13 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.university.itp.dto.ProductDTO;
 import com.university.itp.mapper.ProductMapper;
 import com.university.itp.model.Product;
 import com.university.itp.repository.CartItemRepository;
-import com.university.itp.repository.OrderRepository;
 import com.university.itp.repository.ProductRepository;
-
-import jakarta.persistence.EntityManager;
 
 @Service
 public class ProductService {
@@ -34,19 +30,13 @@ public class ProductService {
     @Autowired
     private CartItemRepository cartItemRepository;
 
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private EntityManager entityManager;
-
     public List<ProductDTO> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(productMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public ProductDTO getProductById(Long id) {
+    public ProductDTO getProductById(String id) {
         return productRepository.findById(id)
                 .map(productMapper::toDTO)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
@@ -68,7 +58,7 @@ public class ProductService {
         return productMapper.toDTO(savedProduct);
     }
 
-    public ProductDTO updateProduct(Long id, String name, String description, BigDecimal price, Integer stock, String category, MultipartFile image) throws IOException {
+    public ProductDTO updateProduct(String id, String name, String description, BigDecimal price, Integer stock, String category, MultipartFile image) throws IOException {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
 
@@ -87,22 +77,15 @@ public class ProductService {
         return productMapper.toDTO(updatedProduct);
     }
 
-    @Transactional
-    public void deleteProduct(Long id) {
+    public void deleteProduct(String id) {
         // Find product or throw error
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + id));
         
-        // Step 1: Delete all cart items referencing this product (required due to foreign key constraint)
+        // Delete cart entries referencing this product first.
         cartItemRepository.deleteAllByProduct(product);
-        entityManager.flush(); // Ensure delete is committed to DB
-        
-        // Step 2: Nullify product references in order items (preserves order history)
-        orderRepository.nullifyProductInOrderItems(product);
-        entityManager.flush(); // Ensure update is committed to DB
-        
-        // Step 3: Safe to delete product (no foreign key constraints remain)
+
+        // Order history is preserved via productName/unitPrice snapshots in OrderItem.
         productRepository.delete(product);
-        entityManager.flush(); // Ensure delete is committed to DB
     }
 }

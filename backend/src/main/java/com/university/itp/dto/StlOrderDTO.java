@@ -13,7 +13,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder
 public class StlOrderDTO {
-    private Long id;
+    private String id;
     private String customerName;
     private String customerEmail;
     private String customerEmail2;
@@ -29,7 +29,7 @@ public class StlOrderDTO {
     private Double weightGrams;
     private Boolean supportStructures;
     private String status;
-    private Long userId;
+    private String userId;
     private String note;
     private Instant createdAt;
 }

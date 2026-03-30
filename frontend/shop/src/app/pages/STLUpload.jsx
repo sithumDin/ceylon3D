@@ -1,9 +1,8 @@
 import { ArrowLeft, CheckCircle, FileText, Loader2, Package, Phone, Mail, Upload, User, X, MapPin } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from "react-router";
+import { API_BASE_URL } from '../lib/config';
 
-const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
 const STL_UPLOAD_URL = API_BASE_URL.endsWith('/api')
   ? `${API_BASE_URL}/uploads/stl`
   : `${API_BASE_URL}/api/uploads/stl`;

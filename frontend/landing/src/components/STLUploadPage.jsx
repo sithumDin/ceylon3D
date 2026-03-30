@@ -1,8 +1,8 @@
 import { ArrowLeft, CheckCircle, FileText, Loader2, Package, Phone, Mail, Upload, User, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
+const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_BASE_URL = (configuredApiBaseUrl || '/api').replace(/\/$/, '');
 const STL_UPLOAD_URL = API_BASE_URL.endsWith('/api')
   ? `${API_BASE_URL}/uploads/stl`
   : `${API_BASE_URL}/api/uploads/stl`;
@@ -170,7 +170,11 @@ export function STLUploadPage() {
       setOrderResult(data);
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      if (err instanceof TypeError && /fetch/i.test(err.message)) {
+        setError(`Cannot reach upload API (${STL_UPLOAD_URL}). Please make sure the backend is running and reachable.`);
+      } else {
+        setError(err.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

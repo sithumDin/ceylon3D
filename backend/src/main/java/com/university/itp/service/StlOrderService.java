@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -25,7 +24,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 public class StlOrderService {
 
     private static final Set<String> ALLOWED_MATERIALS = Set.of("PLA", "PLA+", "ABS", "ABS+");
@@ -44,8 +42,8 @@ public class StlOrderService {
 
     public List<StlOrderDTO> getUserStlOrders(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
-        Long userId = user != null ? user.getId() : -1L;
-        return stlOrderRepository.findByUserIdOrEmail(userId, email).stream()
+        String userId = user != null ? user.getId() : "__none__";
+        return stlOrderRepository.findByUserIdOrCustomerEmailIgnoreCaseOrderByCreatedAtDesc(userId, email).stream()
                 .map(stlOrderMapper::toDTO)
                 .collect(Collectors.toList());
     }
@@ -56,14 +54,14 @@ public class StlOrderService {
                 .collect(Collectors.toList());
     }
 
-    public StlOrderDTO updateStatus(Long id, String status) {
+    public StlOrderDTO updateStatus(String id, String status) {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
         order.setStatus(status);
         return stlOrderMapper.toDTO(stlOrderRepository.save(order));
     }
 
-    public StlOrderDTO updatePrice(Long id, Map<String, Object> req) {
+    public StlOrderDTO updatePrice(String id, Map<String, Object> req) {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
         
@@ -92,7 +90,7 @@ public class StlOrderService {
         return stlOrderMapper.toDTO(stlOrderRepository.save(order));
     }
 
-    public StlOrderDTO updateMyOrder(String email, Long id, Map<String, Object> req) {
+    public StlOrderDTO updateMyOrder(String email, String id, Map<String, Object> req) {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
 
@@ -116,7 +114,7 @@ public class StlOrderService {
         return stlOrderMapper.toDTO(stlOrderRepository.save(order));
     }
 
-    public StlOrderDTO confirmOrder(String email, Long id) {
+    public StlOrderDTO confirmOrder(String email, String id) {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
 
@@ -148,7 +146,6 @@ public class StlOrderService {
             }
 
             OrderItem item = new OrderItem();
-            item.setOrder(shopOrder);
             item.setProductName("3D Print: " + (displayFileName != null ? displayFileName : "STL File") + " (" + order.getMaterial() + ")");
             item.setQuantity(order.getQuantity() != null ? order.getQuantity() : 1);
             item.setUnitPrice(order.getEstimatedPrice());
@@ -163,7 +160,7 @@ public class StlOrderService {
         return stlOrderMapper.toDTO(savedOrder);
     }
 
-    public void deleteStlOrder(Long id) {
+    public void deleteStlOrder(String id) {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
 
@@ -177,7 +174,7 @@ public class StlOrderService {
         stlOrderRepository.delete(order);
     }
 
-    public Resource downloadFile(Long id) throws MalformedURLException {
+    public Resource downloadFile(String id) throws MalformedURLException {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
 
@@ -190,7 +187,7 @@ public class StlOrderService {
         return new UrlResource(filePath.toUri());
     }
     
-    public String getOriginalFileName(Long id) {
+    public String getOriginalFileName(String id) {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
         

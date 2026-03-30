@@ -11,7 +11,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class UserDTO {
-    private Long id;
+    private String id;
     private String email;
     private String fullName;
     private Set<Role> roles;

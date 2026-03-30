@@ -83,7 +83,7 @@ public class UploadController {
             int safeQuantity = quantity == null || quantity < 1 ? 1 : quantity;
             BigDecimal estimatedPrice = calculateEstimatedPrice(file.getSize(), normalizedMaterial, safeQuantity);
 
-            Long linkedUserId = null;
+            String linkedUserId = null;
             if (email != null && !email.isBlank()) {
                 logger.debug("Looking up user by email: {}", email.trim());
                 linkedUserId = userRepository.findByEmail(email.trim())
