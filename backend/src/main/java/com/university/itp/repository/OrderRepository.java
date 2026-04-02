@@ -1,11 +1,12 @@
 package com.university.itp.repository;
 
-import com.university.itp.model.OrderEntity;
-import com.university.itp.model.User;
-import org.springframework.data.mongodb.repository.MongoRepository;
-
 import java.util.List;
 
-public interface OrderRepository extends MongoRepository<OrderEntity, String> {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.university.itp.model.OrderEntity;
+import com.university.itp.model.User;
+
+public interface OrderRepository extends JpaRepository<OrderEntity, String> {
     List<OrderEntity> findByUser(User user);
 }

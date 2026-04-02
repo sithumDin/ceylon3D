@@ -1,14 +1,22 @@
 package com.university.itp.model;
 
-import lombok.*;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
-
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "products")
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "products")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,11 +24,11 @@ import java.time.Instant;
 @Builder
 public class Product {
     @Id
+    @Column(nullable = false, updatable = false)
     private String id;
 
     private String name;
 
-    @Field("description")
     private String description;
 
     private BigDecimal price;
@@ -32,5 +40,16 @@ public class Product {
     private String category;
 
     @Builder.Default
+    @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
+
+    @PrePersist
+    public void prePersist() {
+        if (id == null || id.isBlank()) {
+            id = UUID.randomUUID().toString();
+        }
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 }

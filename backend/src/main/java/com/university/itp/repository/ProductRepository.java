@@ -1,7 +1,8 @@
 package com.university.itp.repository;
 
-import com.university.itp.model.Product;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ProductRepository extends MongoRepository<Product, String> {
+import com.university.itp.model.Product;
+
+public interface ProductRepository extends JpaRepository<Product, String> {
 }

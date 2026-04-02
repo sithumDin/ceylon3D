@@ -1,14 +1,22 @@
 package com.university.itp.model;
 
-import lombok.*;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
-
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "stl_orders")
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "stl_orders")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,6 +25,7 @@ import java.time.Instant;
 public class StlOrder {
 
     @Id
+    @Column(nullable = false, updatable = false)
     private String id;
 
     private String customerName;
@@ -50,12 +59,25 @@ public class StlOrder {
     /** Linked user account (null if uploaded anonymously with no matching user) */
     private String userId;
 
-    @Field("note")
     private String note;
 
     @Builder.Default
+    @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
     @Builder.Default
     private String status = "PENDING_QUOTE";
+
+    @PrePersist
+    public void prePersist() {
+        if (id == null || id.isBlank()) {
+            id = UUID.randomUUID().toString();
+        }
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+        if (status == null || status.isBlank()) {
+            status = "PENDING_QUOTE";
+        }
+    }
 }

@@ -6,18 +6,27 @@ Features:
 - Spring Boot 3.x
 - Java 17
 - JWT authentication skeleton
-- MongoDB via Docker Compose
+- PostgreSQL (Supabase compatible)
 - Basic folder structure (controllers, services, repos, models, dto)
 
 To run locally:
-1. Start DB: `docker-compose up -d`
+1. Set environment variables (see `.env.example`)
 2. Build app: `./mvnw package` or `mvn package`
 3. Run: `java -jar target/itp-ecommerce-0.0.1-SNAPSHOT.jar`
 
 Production deployment notes:
 - Do not use local database URLs (`localhost`) in production.
-- Set MongoDB env vars in your backend host:
-	- `SPRING_DATA_MONGODB_URI` (example: `mongodb+srv://<user>:<pass>@cluster.mongodb.net/ceylon3d?retryWrites=true&w=majority`)
+- Set PostgreSQL env vars in your backend host:
+	- `SUPABASE_DB_HOST` (example: `db.jgainmkjmzqjmqvsniqw.supabase.co`)
+	- `SUPABASE_DB_PORT` (example: `5432`)
+	- `SUPABASE_DB_NAME` (example: `postgres`)
+	- `SUPABASE_DB_USER` (example: `postgres`)
+	- `SUPABASE_DB_PASSWORD` (your Supabase database password)
+	- Optional overrides:
+		- `SPRING_DATASOURCE_URL`
+		- `SPRING_DATASOURCE_USERNAME`
+		- `SPRING_DATASOURCE_PASSWORD`
+		- `SPRING_JPA_HIBERNATE_DDL_AUTO` (default: `update`)
 - Set auth env vars:
 	- `JWT_SECRET`
 	- `JWT_EXPIRATIONMS`
