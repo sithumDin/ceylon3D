@@ -1,5 +1,23 @@
 package com.university.itp.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.university.itp.dto.StlOrderDTO;
 import com.university.itp.mapper.StlOrderMapper;
 import com.university.itp.model.OrderCategory;
@@ -10,18 +28,6 @@ import com.university.itp.model.User;
 import com.university.itp.repository.OrderRepository;
 import com.university.itp.repository.StlOrderRepository;
 import com.university.itp.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class StlOrderService {
@@ -114,6 +120,7 @@ public class StlOrderService {
         return stlOrderMapper.toDTO(stlOrderRepository.save(order));
     }
 
+    @Transactional
     public StlOrderDTO confirmOrder(String email, String id) {
         StlOrder order = stlOrderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("STL Order not found"));
@@ -127,35 +134,37 @@ public class StlOrderService {
 
         order.setStatus("CONFIRMED");
         StlOrder savedOrder = stlOrderRepository.save(order);
+        System.out.println(">>> STL Order confirmed with ID: " + id + ", Status: CONFIRMED");
 
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user != null) {
-            OrderEntity shopOrder = new OrderEntity();
-            shopOrder.setUser(user);
-            shopOrder.setCategory(OrderCategory.STL);
-            shopOrder.setStatus("PENDING");
-            shopOrder.setTotalAmount(order.getEstimatedPrice());
-            shopOrder.setShippingAddress(order.getCustomerName() + "\n" + (order.getPhone() != null ? order.getPhone() : ""));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found for email: " + email));
+        
+        OrderEntity shopOrder = new OrderEntity();
+        shopOrder.setUser(user);
+        shopOrder.setCategory(OrderCategory.STL);
+        shopOrder.setStatus("PENDING");
+        shopOrder.setTotalAmount(order.getEstimatedPrice());
+        shopOrder.setShippingAddress(order.getCustomerName() + "\n" + (order.getPhone() != null ? order.getPhone() : ""));
 
-            String displayFileName = order.getFileName();
-            if (displayFileName != null) {
-                int dashIdx = displayFileName.indexOf('-');
-                if (dashIdx > 0 && dashIdx < displayFileName.length() - 1) {
-                    displayFileName = displayFileName.substring(dashIdx + 1);
-                }
+        String displayFileName = order.getFileName();
+        if (displayFileName != null) {
+            int dashIdx = displayFileName.indexOf('-');
+            if (dashIdx > 0 && dashIdx < displayFileName.length() - 1) {
+                displayFileName = displayFileName.substring(dashIdx + 1);
             }
-
-            OrderItem item = new OrderItem();
-            item.setProductName("3D Print: " + (displayFileName != null ? displayFileName : "STL File") + " (" + order.getMaterial() + ")");
-            item.setQuantity(order.getQuantity() != null ? order.getQuantity() : 1);
-            item.setUnitPrice(order.getEstimatedPrice());
-
-            List<OrderItem> items = new ArrayList<>();
-            items.add(item);
-            shopOrder.setItems(items);
-
-            orderRepository.save(shopOrder);
         }
+
+        OrderItem item = new OrderItem();
+        item.setProductName("3D Print: " + (displayFileName != null ? displayFileName : "STL File") + " (" + order.getMaterial() + ")");
+        item.setQuantity(order.getQuantity() != null ? order.getQuantity() : 1);
+        item.setUnitPrice(order.getEstimatedPrice());
+
+        List<OrderItem> items = new ArrayList<>();
+        items.add(item);
+        shopOrder.setItems(items);
+
+        OrderEntity savedShopOrder = orderRepository.save(shopOrder);
+        System.out.println(">>> Shop Order created for STL confirmation with ID: " + savedShopOrder.getId() + ", Status: PENDING");
 
         return stlOrderMapper.toDTO(savedOrder);
     }

@@ -1,5 +1,13 @@
 package com.university.itp.service;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.university.itp.dto.OrderDTO;
 import com.university.itp.dto.PlaceOrderRequest;
 import com.university.itp.mapper.OrderMapper;
@@ -9,12 +17,6 @@ import com.university.itp.model.OrderItem;
 import com.university.itp.model.User;
 import com.university.itp.repository.OrderRepository;
 import com.university.itp.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -28,6 +30,7 @@ public class OrderService {
     @Autowired
     private OrderMapper orderMapper;
 
+    @Transactional
     public OrderDTO placeOrder(String email, PlaceOrderRequest req) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -61,6 +64,7 @@ public class OrderService {
         return orderMapper.toDTO(saved);
     }
 
+    @Transactional
     public List<OrderDTO> getUserOrders(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -69,12 +73,14 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public List<OrderDTO> getAllOrders() {
         return orderRepository.findAll().stream()
                 .map(orderMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public OrderDTO updateOrderStatus(String id, String status) {
         OrderEntity order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
@@ -82,6 +88,7 @@ public class OrderService {
         return orderMapper.toDTO(orderRepository.save(order));
     }
 
+    @Transactional
     public OrderDTO updateTrackingNumber(String id, String trackingNumber) {
         OrderEntity order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));

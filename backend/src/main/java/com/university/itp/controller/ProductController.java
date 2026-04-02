@@ -82,7 +82,7 @@ public class ProductController {
     // # === SECTION: Product Creation (Admin Only) ===
 
     /**
-     * Create a new product with optional image upload
+     * Create a new product with optional image (file upload OR URL link)
      * 
      * HTTP: POST /api/products (multipart/form-data)
      * Requires: ROLE_ADMIN
@@ -93,20 +93,19 @@ public class ProductController {
      * @param stock - Initial stock quantity (required)
      * @param category - Product category like "Art & Decor" (optional)
      * @param image - Product image file upload (optional)
+     * @param photoUrl - External image URL link (optional) - e.g., from Cloudinary, S3, etc.
      * @return ResponseEntity with created Product object
      * @throws IOException if image file operations fail
      * 
      * Logic Flow:
-     * STEP 1: Handle image upload if provided
-     *   - Check if image file exists and is not empty
-     *   - Create upload directory if it doesn't exist
-     *   - Generate new UUID-based filename (ensures uniqueness)
-     *   - Save image to disk
-     *   - Store image path in imagePath variable
+     * STEP 1: Handle image - prioritize file upload, then URL, then null
+     *   - If file upload provided: save to disk and generate server URL
+     *   - Else if photoUrl provided: use the URL directly
+     *   - Else: use null (no image)
      * 
      * STEP 2: Create Product object
      *   - Build new Product with all provided details
-     *   - Set imagePath from STEP 1 (or null if no image)
+     *   - Set imagePath from STEP 1 (could be server path or external URL or null)
      * 
      * STEP 3: Save and return
      *   - Save product to database
@@ -120,31 +119,30 @@ public class ProductController {
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
             @RequestParam(value = "category", required = false) String category,
-            @RequestParam(value = "image", required = false) MultipartFile image
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "photoUrl", required = false) String photoUrl
     ) throws IOException {
-        // STEP 1: Process image upload if client provided an image file
+        // STEP 1: Determine image path - prioritize file upload over URL
         String imagePath = null;
+        
         if (image != null && !image.isEmpty()) {
-            // Create upload directory in system temp folder if it doesn't exist
+            // File upload provided - save to disk
             Files.createDirectories(UPLOAD_DIR);
             
-            // Get original filename from uploaded file, default to "image.jpg" if null
             String originalName = StringUtils.cleanPath(
                     image.getOriginalFilename() == null ? "image.jpg" : image.getOriginalFilename());
-            
-            // Generate unique filename: UUID + original extension
-            // This prevents filename conflicts (e.g., two users uploading "logo.png")
             String storedName = UUID.randomUUID() + "-" + originalName;
-            
-            // Define full path where image will be saved
             Path target = UPLOAD_DIR.resolve(storedName);
             
-            // Write image file to disk, replacing if it already exists
             Files.copy(image.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            
-            // Store the URL path for frontend to retrieve image later
             imagePath = "/api/products/images/" + storedName;
+        } 
+        else if (photoUrl != null && !photoUrl.trim().isEmpty()) {
+            // No file upload, but URL provided - use the URL directly
+            // Supports external URLs from cloud services (Cloudinary, S3, etc.)
+            imagePath = photoUrl.trim();
         }
+        // If neither file nor URL provided, imagePath remains null
 
         // STEP 2: Create Product object with all details
         Product product = Product.builder()
@@ -153,7 +151,7 @@ public class ProductController {
                 .price(price)
                 .stock(stock)
                 .category(category)
-                .imagePath(imagePath)  // May be null if no image uploaded
+                .imagePath(imagePath)  // Can be server path, external URL, or null
                 .build();
         
         // STEP 3: Save product to database and return it
@@ -221,7 +219,8 @@ public class ProductController {
      * @param price - Updated product price
      * @param stock - Updated stock quantity
      * @param category - Updated product category (optional)
-     * @param image - New product image file (optional - old image kept if not provided)
+     * @param image - New product image file upload (optional - old image kept if not provided)
+     * @param photoUrl - New external image URL link (optional - old image kept if not provided)
      * @return ResponseEntity with updated Product, or 404 if product not found
      * @throws IOException if image upload fails
      * 
@@ -229,6 +228,9 @@ public class ProductController {
      * STEP 1: Find product in database by ID
      * STEP 2: If found: update all fields with new values
      * STEP 3: If new image provided: process and save it
+     *         - Prioritize file upload over URL
+     *         - If no file: use URL if provided
+     *         - If neither: keep existing image
      * STEP 4: Save updated product to database
      * STEP 5: Return updated product
      * STEP 6: If product not found: return 404
@@ -242,7 +244,8 @@ public class ProductController {
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
             @RequestParam(value = "category", required = false) String category,
-            @RequestParam(value = "image", required = false) MultipartFile image
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "photoUrl", required = false) String photoUrl
     ) throws IOException {
         // STEP 1: Try to find the product - if not found, return 404
         return productRepository.findById(id).map(p -> {
@@ -253,31 +256,27 @@ public class ProductController {
             p.setStock(stock);
             p.setCategory(category);
             
-            // STEP 3: Handle optional image update
+            // STEP 3: Handle optional image update - prioritize file upload over URL
             if (image != null && !image.isEmpty()) {
                 try {
-                    // Ensure upload directory exists
+                    // File upload provided - save to disk
                     Files.createDirectories(UPLOAD_DIR);
-                    
-                    // Clean up original filename
                     String originalName = StringUtils.cleanPath(
                             image.getOriginalFilename() == null ? "image.jpg" : image.getOriginalFilename());
-                    
-                    // Generate unique filename with UUID prefix
                     String storedName = UUID.randomUUID() + "-" + originalName;
-                    
-                    // Save new image to disk
                     Path target = UPLOAD_DIR.resolve(storedName);
-                    Files.copy(image.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
                     
-                    // Update product with new image path
+                    Files.copy(image.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
                     p.setImagePath("/api/products/images/" + storedName);
                 } catch (IOException e) {
-                    // If image upload fails, wrap error and re-throw
                     throw new RuntimeException("Failed to upload image", e);
                 }
             }
-            // If no new image provided, existing imagePath is preserved automatically
+            else if (photoUrl != null && !photoUrl.trim().isEmpty()) {
+                // No file upload, but URL provided - use the URL directly
+                p.setImagePath(photoUrl.trim());
+            }
+            // If neither file nor URL provided, existing imagePath is preserved
             
             // STEP 4: Save updated product to database
             productRepository.save(p);

@@ -1,5 +1,12 @@
 package com.university.itp.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.university.itp.dto.CartItemDTO;
 import com.university.itp.mapper.CartItemMapper;
 import com.university.itp.model.CartItem;
@@ -8,11 +15,6 @@ import com.university.itp.model.User;
 import com.university.itp.repository.CartItemRepository;
 import com.university.itp.repository.ProductRepository;
 import com.university.itp.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class CartService {
@@ -29,6 +31,7 @@ public class CartService {
     @Autowired
     private CartItemMapper cartItemMapper;
 
+    @Transactional
     public List<CartItemDTO> getCart(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -59,6 +62,7 @@ public class CartService {
         return result;
     }
 
+    @Transactional
     public CartItemDTO addToCart(String email, String productId, int quantity) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -78,6 +82,7 @@ public class CartService {
         return cartItemMapper.toDTO(cartItemRepository.save(item));
     }
 
+    @Transactional
     public CartItemDTO updateCartItem(String email, String cartItemId, int quantity) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -93,6 +98,7 @@ public class CartService {
         return cartItemMapper.toDTO(cartItemRepository.save(item));
     }
 
+    @Transactional
     public void removeCartItem(String email, String cartItemId) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -107,6 +113,7 @@ public class CartService {
         cartItemRepository.delete(item);
     }
 
+    @Transactional
     public void clearCart(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
