@@ -17,3 +17,7 @@ backend/target/
 # IDE
 .vscode/
 .idea/
+
+# Server credentials (sensitive)
+.env.server
+.ssh/
